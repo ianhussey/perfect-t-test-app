@@ -15,36 +15,59 @@ shinyUI(
 
             br(),
             
-            h1("Upload your data"),
+            h1("Your data"),
             
             fluidRow(
                 column(4, 
                     wellPanel(
-                        radioButtons('test_type', 
-                                     'Type of test',
-                                     c(Independent = 'independent', 
-                                       Dependent = 'dependent'),
-                                     'independent'),
                         fileInput('data_file', 
-                                  'Choose CSV File',
+                                  'Upload the file',
                                   accept=c('text/csv', 
                                     'text/comma-separated-values,text/plain', 
                                     '.csv')),
-                        tags$hr(),
-                        checkboxInput('header', 'Header', TRUE),
+                        #tags$hr(),
                         radioButtons('sep', 'Separator',
-                            c(Comma=',', Semicolon=';', Tab='\t'), ','),
+                            c(Comma=',', Semicolon=';', Tab='\t'), '\t'),
+                        radioButtons('dec', 'Decimal point',
+                            c(Comma=',', Point='.'), '.'),
                         radioButtons('quote', 'Quote',
                             c(None='', 'Double Quote'='"', 'Single Quote'="'"),
-                            '"'),
-                        # submit button
-                        submitButton("Upload ")
+                            '"')
                     )
                 ),
 
                 # Show the output
-                column(8,
+                column(4,
+                    h4("First 30 rows of your data"),
                     tableOutput(outputId = "data_table")
+                ), 
+
+                # conditional part with variable names etc, once the data is uploaded
+                column(4, 
+                    wellPanel(
+                        h4("What type of test do you wish to do?"),
+                        radioButtons('test_type', "",
+                                     c(Independent = 'independent', 
+                                       Dependent = 'dependent'),
+                                     'independent')
+                    ),
+                    wellPanel(
+                        h4("Set the variables"),
+                        textInput("factorlabel", "What variable determines the groups?", "Group variable"),
+                        textInput("measurelabel", "What variable is the dependent measure?", "Dependent variable"),
+                        textInput("xlabel", "What will be your group 1?", value = "Group 1"),
+                        textInput("ylabel", "What will be your group 2?", value = "Group 2")
+                        #uiOutput("variables"),
+                        #uiOutput("groups")
+                    ),
+                    wellPanel(
+                        h4("Set the labels for figures"),
+                        textInput("xlabelstring", "Define the name of the variable displayed on x axis", value = "x axis label"),
+                        textInput("ylabelstring", "Define the name of the variable displayed on y axis", value = "y axis label"),
+                        # submit button
+                        submitButton("Update data")
+                        #uiOutput("labels")
+                    )
                 )
             )  # END of row
         )  # end of page
@@ -64,23 +87,7 @@ shinyUI(
 
             # row with buttons and the figure
             fluidRow(
-                column(4,
-                    wellPanel(
-
-                        br(),
-                        numericInput("alpha", 
-                            label = h5("Significance level, alpha:"), 
-                            value = 0.05),
-                        br(),  
-                        sliderInput("conf_int", label = h5("Select confidence interval level:"), min = 0, max = 1, value = 0.95, step = 0.01),
-                        
-                        # submit button
-                        submitButton("Update report!")
-                    )
-                ),
-
-                # Show 
-                column(8,
+                column(12,
                     # outlier plot
                     h2("Outliers"),
                     htmlOutput(outputId = "outlier_text"),
@@ -92,7 +99,10 @@ shinyUI(
                     #tableOutput(outputId = "normality_test_results"),
                     plotOutput(outputId = "hist_plot"),
                     htmlOutput(outputId = "qqplot_text"),
-                    plotOutput(outputId = "qq_plot")
+                    plotOutput(outputId = "qq_plot"),
+                    htmlOutput(outputId = "eqvar_text"),
+                    br(),
+                    br()
                 )
             )  # END of row
         )
