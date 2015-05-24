@@ -18,10 +18,10 @@ shinyUI(
             h1("Your data"),
             
             fluidRow(
-                column(4, 
+                column(8, 
                     wellPanel(
                         fileInput('data_file', 
-                                  'Upload the file',
+                                  h4('Step 1: Upload the file'),
                                   accept=c('text/csv', 
                                     'text/comma-separated-values,text/plain', 
                                     '.csv')),
@@ -33,26 +33,16 @@ shinyUI(
                         radioButtons('quote', 'Quote',
                             c(None='', 'Double Quote'='"', 'Single Quote'="'"),
                             '"')
-                    )
-                ),
-
-                # Show the output
-                column(4,
-                    h4("First 30 rows of your data"),
-                    tableOutput(outputId = "data_table")
-                ), 
-
-                # conditional part with variable names etc, once the data is uploaded
-                column(4, 
+                    ),
                     wellPanel(
-                        h4("What type of test do you wish to do?"),
+                        h4("Step2: What type of test do you wish to do?"),
                         radioButtons('test_type', "",
                                      c(Independent = 'independent', 
                                        Dependent = 'dependent'),
                                      'independent')
                     ),
                     wellPanel(
-                        h4("Set the variables"),
+                        h4("Step 3: Set the variables"),
                         textInput("factorlabel", "What variable determines the groups?", "Group variable"),
                         textInput("measurelabel", "What variable is the dependent measure?", "Dependent variable"),
                         textInput("xlabel", "What will be your group 1?", value = "Group 1"),
@@ -61,14 +51,22 @@ shinyUI(
                         #uiOutput("groups")
                     ),
                     wellPanel(
-                        h4("Set the labels for figures"),
+                        h4("Step 4: Set the labels for figures"),
                         textInput("xlabelstring", "Define the name of the variable displayed on x axis", value = "x axis label"),
-                        textInput("ylabelstring", "Define the name of the variable displayed on y axis", value = "y axis label"),
-                        # submit button
-                        submitButton("Update data")
+                        textInput("ylabelstring", "Define the name of the variable displayed on y axis", value = "y axis label")
                         #uiOutput("labels")
-                    )
-                )
+                    ),
+                    # submit button
+                    submitButton("Data is ready!"),
+                    br(),
+                    br()
+                ),
+
+                # Show the output
+                column(4,
+                    h4("First 30 rows of your data"),
+                    tableOutput(outputId = "data_table")
+                ) 
             )  # END of row
         )  # end of page
     ),
