@@ -15,7 +15,7 @@ shinyUI(
 
             br(),
             
-            h1("Your data"),
+            #h1("Your data"),
             
             fluidRow(
                 column(6, 
