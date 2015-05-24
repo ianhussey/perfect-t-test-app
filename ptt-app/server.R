@@ -6,6 +6,7 @@ library(gtable)
 library(gridExtra)
 library(gridExtra)
 library(markdown)
+library(reshape2)
 
 library(PoweR) 
 library(car) 
@@ -40,65 +41,80 @@ shinyServer(function(input, output) {
         if (is.null(user_file)) return(NULL)
         
         # reading in the data
-        data_original <- read.csv(user_file$datapath, header=TRUE, sep=input$sep, quote=input$quote, dec=input$dec)
+        data_original <- read.table(user_file$datapath, header=TRUE, sep=input$sep, quote=input$quote, dec=input$dec, stringsAsFactors=FALSE)
         return(data_original)
     })
     
     # doing some processing
     get_proc_data <- reactive( {      
 
-        ### ORIGINAL DATA and inputs
+        ### ORIGINAL DATA 
         data_original <- get_data()
-        if (!is.null(input$factorlabel) &&
-            !is.null(input$measurelabel) &&
-            !is.null(input$xlabel) &&
-            !is.null(input$ylabel)) {
-            factorlabel <- input$factorlabel
-            measurelabel <- input$measurelabel
-            xlabel <- input$xlabel
-            ylabel <- input$ylabel
-            
 
-            ### PROCESSING THE DATA   
-            data_proc <- na.omit(data_original)
-            data_proc <- subset(data_proc, data_proc[[factorlabel]] == xlabel |
-                                data_proc[[factorlabel]] == ylabel)
-            x_data_proc <- subset(data_proc, data_proc[[factorlabel]] == xlabel)
-            y_data_proc <- subset(data_proc, data_proc[[factorlabel]] == ylabel)
-            x <- x_data_proc[[measurelabel]]
-            y <- y_data_proc[[measurelabel]]
+        ### test_type dependent processing
+        if (input$test_type == "dependent") {
+            if (!is.null(input$factorlabel) &&
+                !is.null(input$measurelabel) &&
+                !is.null(input$xlabel) &&
+                !is.null(input$ylabel)) {
+                factorlabel <- input$factorlabel
+                measurelabel <- input$measurelabel
+                subgrouplabel <- input$subgrouplabel
+                subgrouptokeep <- input$subgrouptokeep
+                xlabel <- input$xlabel
+                ylabel <- input$ylabel
+                
 
-            return(list(data_proc = data_proc,
-                        x_data_proc = x_data_proc,
-                        y_data_proc = y_data_proc,
-                        x = x,
-                        y = y))
+                ### PROCESSING THE DATA   
+                
+                data_proc <- na.omit(data_original)
+                if (subgrouplabel != ""){
+                    data_proc <- subset(data_proc, data_proc[[subgrouplabel]]==subgrouptokeep)
+                }
+
+                # create two variables (x and y) that contain values of two datasets to be compared
+                x <- data_proc[[xlabel]]
+                y <- data_proc[[ylabel]]
+                diff <- x-y #difference scores
+
+                # Add difference to data_proc dataframe for plotting.
+                data_proc[["diff"]] <- diff
+
+                # Convert data_proc to long format
+                data_proc_long <- melt(data_proc, id.vars = subject, measure.vars = c(xlabel,ylabel), variable.name = factorlabel,value.name = measurelabel)
+
+                return(list(data_proc = data_proc,
+                            data_proc_long = data_proc_long,
+                            x = x,
+                            y = y))
+            }
+        } else if (input$test_type == "independent") {
+            if (!is.null(input$factorlabel) &&
+                !is.null(input$measurelabel) &&
+                !is.null(input$xlabel) &&
+                !is.null(input$ylabel)) {
+                factorlabel <- input$factorlabel
+                measurelabel <- input$measurelabel
+                xlabel <- input$xlabel
+                ylabel <- input$ylabel
+                
+
+                ### PROCESSING THE DATA   
+                data_proc <- na.omit(data_original)
+                data_proc <- subset(data_proc, data_proc[[factorlabel]] == xlabel |
+                                    data_proc[[factorlabel]] == ylabel)
+                x_data_proc <- subset(data_proc, data_proc[[factorlabel]] == xlabel)
+                y_data_proc <- subset(data_proc, data_proc[[factorlabel]] == ylabel)
+                x <- x_data_proc[[measurelabel]]
+                y <- y_data_proc[[measurelabel]]
+
+                return(list(data_proc = data_proc,
+                            x_data_proc = x_data_proc,
+                            y_data_proc = y_data_proc,
+                            x = x,
+                            y = y))
+            }
         }
-        # print(data_original)
-        # print(input$factorlabel)
-        # factorlabel <- input$factorlabel
-        # measurelabel <- input$measurelabel
-        # xlabel <- input$xlabel
-        # ylabel <- input$ylabel
-        # print(factorlabel)
-        # print(measurelabel)
-        # print(xlabel)
-        # print(ylabel)
-        
-        # ### PROCESSING THE DATA   
-        # data_proc <- na.omit(data_original)
-        # data_proc <- subset(data_proc, data_proc[[factorlabel]] == xlabel |
-        #                     data_proc[[factorlabel]] == ylabel)
-        # x_data_proc <- subset(data_proc, data_proc[[factorlabel]] == xlabel)
-        # y_data_proc <- subset(data_proc, data_proc[[factorlabel]] == ylabel)
-        # x <- x_data_proc[[measurelabel]]
-        # y <- y_data_proc[[measurelabel]]
-
-        # return(list(data_proc = data_proc,
-        #             x_data_proc = x_data_proc,
-        #             y_data_proc = y_data_proc,
-        #             x = x,
-        #             y = y))
     })
 
 
@@ -116,6 +132,44 @@ shinyServer(function(input, output) {
         data_user <- get_data()
         return(head(data_user, 30))
     })
+
+    output$variables <- renderUI({
+
+        # set action if nothing is uploaded yet
+        user_file <- input$data_file
+        if (is.null(user_file)) {
+            return()
+        } else {
+            if (input$test_type == "independent") {
+                list(
+                    textInput("factorlabel", "What variable determines the groups?", "Group variable"),
+                    
+                    textInput("measurelabel", "What variable is the dependent measure?", "Dependent variable"),
+                    
+                    textInput("xlabel", "What will be your group 1?", value = "Group 1"),
+                    
+                    textInput("ylabel", "What will be your group 2?", value = "Group 2")
+                )
+            } else if (input$test_type == "dependent") {
+                list(
+                    textInput("subject", "What is the name of individual subject identifier variable? e.g. the participant number", "Subject variable"),
+                    
+                    textInput("factorlabel", "Define the name of the factor that describes the difference between x and y (e.g., condition, time)", "Group variable"),
+                    
+                    textInput("measurelabel", "Define name of the measure that describes the values of x and y (e.g., reaction times, self-reported happiness)", "Dependent variable"),
+                    
+                    textInput("subgrouplabel", "Specify header of the addition column specifying the subgroups (e.g., \"Year\"). To analyze all data, leave empty", ""),
+                    
+                    textInput("subgrouptokeep", "Specify the identifier of the group you want to analyze (e.g., \"2013\")", ""),
+                    
+                    textInput("xlabel", "What will be your group 1?", value = "Group 1"),
+                    
+                    textInput("ylabel", "What will be your group 2?", value = "Group 2")
+                )
+            }
+        }
+    })
+    
 
 
     # output$variables <- renderUI({
@@ -482,7 +536,15 @@ shinyServer(function(input, output) {
                 paste0("The mean ", ylabelstring," of participants in the ", xlabel," condition (*M* = ", round(mean(x), digits = 2),", *SD* = ", round(sd1, digits = 2),", *n* = ", n1,") was ", direction," the mean of participants in the ", ylabel," condition (*M* = ", round(mean(y), digits = 2),", *SD* = ", round(sd2,digits=2),", *n* = ", n2,"). The difference between the two measurements (*M* = ", round(m_diff, digits=2),", ", 100*ConfInt,"% CI = [", round(CI_diff[1:1], digits=2),";", round(CI_diff[2:2],digits=2),"]) was analyzed with Welch's *t*-test, *t*(", round(ttestresult$parameter, digits=2),") = ", round(tvalue, digits=2),", *p* ", ifelse(pvalue>0.001,' = ', ' < ')," ", ifelse(pvalue>0.001,formatC(round(pvalue, digits=3),digits=3, format='f'), '0.001'),", Hedges' *g* = ", round(d, digits=2),", ", 100*ConfInt,"% CI [", round(ci_l_d, digits=2),";", round(ci_u_d, digits=2),"]. This can be considered a ", effectsize," effect. The observed data is ", surprising," under the assumption that the null-hypothesis is true. The Common Language effect size (McGraw & Wong, 1992) indicates that the likelihood that the ", ylabelstring," of a random person in the ", xlabel," condition is ", direction," the ", ylabelstring," of a random person in the ", ylabel," condition is ", round(100*CL, digits=0),"%.")
             )
         } else if (input$test_type == "dependent") {
-            report <- "not yet..."
+            report <- c(
+                "## Frequentist statistics",
+
+                paste0("A *p*-value is the probability of obtaining the observed result, or a more extreme result, assuming the null-hypothesis is true. It is not the probability that the null-hypothesis or the alternative hypothesis is true (for such inferences, see Bayesian statistics below). In repeated sampling, ", 100*ConfInt,"% of future ", 100*ConfInt,"% confidence intervals can be expected to contain the true population parameters (e.g, the mean difference or the effect size). Confidence intervals are not a statement about the probability that a single confidence interval contains the true population parameter, but a statement about the probability that future confidence intervals will contain the true population parameter. Hedges' *g* (also referred to as *d*~unbiased~, see Borenstein, Hedges, Higgins, & Rothstein, 2009) is provided as best estimate of Cohen's *d*, but the best estimate of the confidence interval is based on *d*~av~ (as recommended by Cumming, 2012). Hedges's *g* and the ", 100*ConfInt,"% CI around the effect size are calculated using the MBESS package by ([Kelley (2007](http://dx.doi.org/10.3758/BF03192993)). The common language effect size expresses the probability that in any random pairing of two observations from both groups, the observation from one group is higher than the observation from the other group, see [McGraw & Wong, 1992](http://dx.doi.org/10.1037/0033-2909.111.2.361). In a dependent *t*-test, the effect size Cohen's *d* can be calculated by using a standardizer that controls for the correlation between observations (*d*~av~) or not (*d*~z~). Both are provided, but *d*~av~ (or actually it's unbiased estimate, *g*~av~) is recommended. For a discussion, see [Lakens, 2013](http://journal.frontiersin.org/Journal/10.3389/fpsyg.2013.00863/full). Default interpretations of the size of an effect as provided here should only be used as a last resort, and it is preferable to interpret the size of the effect in relation to other effects in the literature, or in terms of its practical significance."),
+
+                "### Results",
+
+                paste0("The mean ", ylabelstring," of participants in the ", xlabel," condition (*M* = ", round(mean(x), digits = 2),", *SD* = ", round(sd1, digits = 2),")  was ", direction," the mean of participants in the ", ylabel," condition (*M* = ", round(mean(y), digits = 2),", *SD* = ", round(sd2,digits=2),", *r* = ", round(r, digits = 2),"). The difference between measurements (*M* = ", round(m_diff, digits=2),", *SD* = ", round(s_diff, digits=2),", ", 100*ConfInt,"% CI = [", round(CI_diff[1:1], digits=2),";", round(CI_diff[2:2],digits=2),"]) was analyzed with a dependent *t*-test, *t*(", round(ttestresult$parameter, digits=2),") = ", round(tvalue, digits=2),", *p* ", ifelse(pvalue>0.001," = ", " < ")," ", ifelse(pvalue>0.001, formatC(round(pvalue, digits=3),digits=3, format="f"), "0.001"),", Hedges' *g* = ", round(d_unb, digits=2),", ", 100*ConfInt,"% CI [", round(ci_l_d_av, digits=2),";", round(ci_u_d_av, digits=2),"] (or *d*~z~ = ", round(d_z, digits=2),", ", 100*ConfInt,"% CI [", round(ci_l_d_z, digits=2),";", round(ci_u_d_z, digits=2),"]). This can be considered a ", effectsize," effect. The observed data is ", surprising," under the assumption that the null-hypothesis is true. The Common Language effect size (McGraw & Wong, 1992) indicates that after controlling for individual differences, the likelihood that a persons ", ylabelstring," in the ", xlabel," condition is ", direction," the ", ylabelstring," in the ", ylabel," condition is ", round(100*CL, digits=0),"%.")
+            )
         }
 
         html_out <- renderMarkdown(text = report)
