@@ -18,7 +18,7 @@ shinyUI(
             h1("Your data"),
             
             fluidRow(
-                column(8, 
+                column(6, 
                     wellPanel(
                         fileInput('data_file', 
                                   h4('Step 1: Upload the file'),
@@ -43,11 +43,11 @@ shinyUI(
                     ),
                     wellPanel(
                         h4("Step 3: Set the variables"),
-                        textInput("factorlabel", "What variable determines the groups?", "Group variable"),
-                        textInput("measurelabel", "What variable is the dependent measure?", "Dependent variable"),
-                        textInput("xlabel", "What will be your group 1?", value = "Group 1"),
-                        textInput("ylabel", "What will be your group 2?", value = "Group 2")
-                        #uiOutput("variables"),
+                        # textInput("factorlabel", "What variable determines the groups?", "Group variable"),
+                        # textInput("measurelabel", "What variable is the dependent measure?", "Dependent variable"),
+                        # textInput("xlabel", "What will be your group 1?", value = "Group 1"),
+                        # textInput("ylabel", "What will be your group 2?", value = "Group 2")
+                        uiOutput("variables")
                         #uiOutput("groups")
                     ),
                     wellPanel(
@@ -61,7 +61,7 @@ shinyUI(
                     br(),
                     br()
                 ),
-
+                column(2),
                 # Show the output
                 column(4,
                     h4("First 30 rows of your data"),
