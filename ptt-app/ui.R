@@ -170,7 +170,7 @@ shinyUI(
                             c("Two sided"="two.sided", "Less"="less", "Greater"="greater"),
                             "two.sided"), 
                         br(),  
-                        checkboxInput("InAHurry", label = h5("Are you in a hurry?"), FALSE),
+                        checkboxInput("InAHurry", label = h5("Are you in a hurry?"), TRUE),
                         br(),  
                         sliderInput("bootstraps", label = h5("Number of bootstrap replications:"), min = 0, max = 100000, value = 2000, step = 1),
                                                 
@@ -192,6 +192,10 @@ shinyUI(
     tabPanel("Bayesian tests",
         fluidPage(
 
+            # TO DO 
+            # 1) we'll need some waiting indicator, or computation in progress
+            # 2) in a hurry TRUE by default
+            
             # row with explanations of the figure
             fluidRow(
                 column(10, includeMarkdown("instructions_bayes.md") ),
@@ -216,7 +220,7 @@ shinyUI(
                             label = h5("Specify expected effect:"), 
                             value = 0.5),
                         br(),  
-                        checkboxInput("InAHurry", label = h5("Are you in a hurry?"), FALSE),
+                        checkboxInput("InAHurry", label = h5("Are you in a hurry?"), TRUE),
                                                 
                         # submit button
                         submitButton("Update report!")
