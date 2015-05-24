@@ -20,9 +20,16 @@ shinyUI(
             fluidRow(
                 column(4, 
                     wellPanel(
-
-                        fileInput('data_file', 'Choose CSV File',
-                            accept=c('text/csv', 'text/comma-separated-values,text/plain', '.csv')),
+                        radioButtons('test_type', 
+                                     'Type of test',
+                                     c(Independent = 'independent', 
+                                       Dependent = 'dependent'),
+                                     'independent'),
+                        fileInput('data_file', 
+                                  'Choose CSV File',
+                                  accept=c('text/csv', 
+                                    'text/comma-separated-values,text/plain', 
+                                    '.csv')),
                         tags$hr(),
                         checkboxInput('header', 'Header', TRUE),
                         radioButtons('sep', 'Separator',
@@ -72,9 +79,20 @@ shinyUI(
                     )
                 ),
 
-                # Show a plot of the generated distribution
+                # Show 
                 column(8,
-                    plotOutput(outputId = "outlier_plot")
+                    # outlier plot
+                    h2("Outliers"),
+                    htmlOutput(outputId = "outlier_text"),
+                    plotOutput(outputId = "outlier_plot"),
+
+                    # Normality
+                    h2("Normality assumption"),
+                    htmlOutput(outputId = "normality_text"),
+                    #tableOutput(outputId = "normality_test_results"),
+                    plotOutput(outputId = "hist_plot"),
+                    htmlOutput(outputId = "qqplot_text"),
+                    plotOutput(outputId = "qq_plot")
                 )
             )  # END of row
         )
@@ -108,12 +126,7 @@ shinyUI(
                         br(), 
                         radioButtons('alt_hyp', label = h5("Select alternative hypothesis:"),
                             c("Two sided"="two.sided", "Less"="less", "Greater"="greater"),
-                            "two.sided"), 
-                        br(),  
-                        checkboxInput("InAHurry", label = h5("Are you in a hurry?"), FALSE),
-                        br(),  
-                        sliderInput("bootstraps", label = h5("Number of bootrstrap replications:"), min = 0, max = 100000, value = 2000, step = 1),
-                        
+                            "two.sided"),                         
                                                 
                         # submit button
                         submitButton("Update report!")
@@ -122,13 +135,60 @@ shinyUI(
 
                 # Show a report
                 column(8,
-                    verbatimTextOutput(outputId = "ttestOut")
+                    htmlOutput(outputId = "ttestOut")
                 )
             )  # END of row
         )
     ),  # END of tab
 
-    # 4th tab with Inequality and unpredictability figures
+    
+    # 4th tab with robust stats
+    tabPanel("Robust tests",
+        fluidPage(
+
+            # row with explanations of the figure
+            fluidRow(
+                column(10, includeMarkdown("instructions_robust.md") ),
+                column(2)
+            ),  # END of row
+
+            br(),
+
+            # user input
+            fluidRow(
+                column(4, 
+                    wellPanel(
+                        
+                        br(),
+                        numericInput("alpha", 
+                            label = h5("Significance level, alpha:"), 
+                            value = 0.05),
+                        br(),  
+                        sliderInput("conf_int", label = h5("Select confidence interval level:"), min = 0, max = 1, value = 0.95, step = 0.01),
+                        br(), 
+                        radioButtons('alt_hyp', label = h5("Select alternative hypothesis:"),
+                            c("Two sided"="two.sided", "Less"="less", "Greater"="greater"),
+                            "two.sided"), 
+                        br(),  
+                        checkboxInput("InAHurry", label = h5("Are you in a hurry?"), FALSE),
+                        br(),  
+                        sliderInput("bootstraps", label = h5("Number of bootstrap replications:"), min = 0, max = 100000, value = 2000, step = 1),
+                                                
+                        # submit button
+                        submitButton("Update report!")
+                    )
+                ),
+                
+                # Show a report
+                column(8,
+                    htmlOutput(outputId = "robustOut")
+                )
+            )  # END of row
+        )
+    ),  # END of tab
+
+
+    # 5th tab with bayes tests
     tabPanel("Bayesian tests",
         fluidPage(
 
@@ -145,6 +205,12 @@ shinyUI(
                 column(4, 
                     wellPanel(
                         
+                        br(), 
+                        radioButtons('alt_hyp', label = h5("Select alternative hypothesis:"),
+                            c("Two sided"="two.sided", "Less"="less", "Greater"="greater"),
+                            "two.sided"), 
+                        br(),  
+                        sliderInput("conf_int", label = h5("Select confidence interval level:"), min = 0, max = 1, value = 0.95, step = 0.01),
                         br(),
                         numericInput("BFrscale", 
                             label = h5("Specify expected effect:"), 
@@ -159,13 +225,14 @@ shinyUI(
                 
                 # Show a report
                 column(8,
-                    verbatimTextOutput(outputId = "bayesOut")
+                    htmlOutput(outputId = "bayesOut")
                 )
             )  # END of row
         )
     ),  # END of tab
 
-    # 5th tab, references used in the text
+
+    # 6th tab, references used in the text
     tabPanel("References", includeMarkdown("references.md") 
             
     )  # END of tab
