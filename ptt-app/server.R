@@ -17,60 +17,7 @@ library(BayesFactor)
 library(HLMdiag)
 
 
-
-# library(reshape2)
-# library(dplyr)
-# library(ggplot2)
-# library(RColorBrewer)
-
-
-# library("MASS") 
-# library("akima") 
-# library("robustbase") 
-# library("cobs") 
-# library("robust") 
-# library("mgcv") 
-# library("scatterplot3d") 
-# library("quantreg") 
-# library("rrcov") 
-# library("lars") 
-# library("pwr") 
-# library("trimcluster") 
-# library("mc2d") 
-# library("psych") 
-# library("Rfit")
-# library("MBESS") 
-# library("BayesFactor") 
-# library("PoweR") 
-# library("ggplot2") 
-# library("reshape2") 
-# library("plyr") 
-# library("devtools") 
-# library("rmarkdown")
-# library("gmodels") 
-# library("HLMdiag") 
-# library("car") 
-# library("gridExtra") 
-# library("bootES") 
-# library("BEST")
-
-
-#IMPORTANT: Do not use spaces, hyphens, or other symbols in names. If variable names in your file include spaces, change the names.
-
-#Define names of the two groups, as specified by the grouping variable (e.g., 'high' and 'low', or '1' and '2'). Difference is computed as x-y (so reverse labels as desired) 
-xlabel<-"high" #name group 1 - needs to match the datafile (R is case-sensitive)!
-ylabel<-"low" #name group 2 - needs to match the datafile (R is case-sensitive)!
-
-#Define name (header) of the grouping column in your data file (e.g., condition, time).
-factorlabel<-"condition" #needs to match the datafile (R is case-sensitive)!
-#Define name of the dependent measure column in your data file (e.g., reaction times, self-reported happiness)
-measurelabel<-"answer"  #needs to match the datafile (R is case-sensitive)!
-#Below names for axis are used. These CAN include spaces.
-xlabelstring<-"condition" #define variables to be used for axis (can be replaced by "Any Label")
-ylabelstring<-"answer (1-10)"  #define variables to be used for axis
-
 options(scipen=20) #disable scientific notation for numbers smaller than x (i.e., 10) digits (e.g., 4.312e+22)
-
 
 
 # Define server logic 
@@ -79,15 +26,6 @@ shinyServer(function(input, output) {
     
     # data file loaded by the user
     get_data <- reactive({
-
-        ### TO DO
-        
-        # 1) we should add dec point to the input (excel etc)
-        # 2) or perhaps be strict what type of data should be loaded in
-        # 3) add some assertions, check of the data format
-        # 4) adding names of the variables etc immediately
-        # 5) options change depending on independent or dependent test
-        
 
         ### ORIGINAL DATA
         
@@ -101,32 +39,67 @@ shinyServer(function(input, output) {
 
         if (is.null(user_file)) return(NULL)
         
-        # we should ad dec point to the input
-        data_original <- read.csv(user_file$datapath, header=input$header, sep=input$sep, quote=input$quote)
-
-
-        ### PROCESSING THE DATA
-        
-        data_proc <- na.omit(data_original)
-
-        data_proc <- subset(data_proc, data_proc[[factorlabel]] == xlabel |
-                            data_proc[[factorlabel]] == ylabel)
-
-        x_data_proc <- subset(data_proc, data_proc[[factorlabel]] == xlabel)
-        y_data_proc <- subset(data_proc, data_proc[[factorlabel]] == ylabel)
-        x <- x_data_proc[[measurelabel]]
-        y <- y_data_proc[[measurelabel]]
-
-
-        return(list(data_original = data_original, 
-                    data_proc = data_proc,
-                    x_data_proc = x_data_proc,
-                    y_data_proc = y_data_proc,
-                    x = x,
-                    y = y))
+        # reading in the data
+        data_original <- read.csv(user_file$datapath, header=TRUE, sep=input$sep, quote=input$quote, dec=input$dec)
+        return(data_original)
     })
     
-    
+    # doing some processing
+    get_proc_data <- reactive( {      
+
+        ### ORIGINAL DATA and inputs
+        data_original <- get_data()
+        if (!is.null(input$factorlabel) &&
+            !is.null(input$measurelabel) &&
+            !is.null(input$xlabel) &&
+            !is.null(input$ylabel)) {
+            factorlabel <- input$factorlabel
+            measurelabel <- input$measurelabel
+            xlabel <- input$xlabel
+            ylabel <- input$ylabel
+            
+
+            ### PROCESSING THE DATA   
+            data_proc <- na.omit(data_original)
+            data_proc <- subset(data_proc, data_proc[[factorlabel]] == xlabel |
+                                data_proc[[factorlabel]] == ylabel)
+            x_data_proc <- subset(data_proc, data_proc[[factorlabel]] == xlabel)
+            y_data_proc <- subset(data_proc, data_proc[[factorlabel]] == ylabel)
+            x <- x_data_proc[[measurelabel]]
+            y <- y_data_proc[[measurelabel]]
+
+            return(list(data_proc = data_proc,
+                        x_data_proc = x_data_proc,
+                        y_data_proc = y_data_proc,
+                        x = x,
+                        y = y))
+        }
+        # print(data_original)
+        # print(input$factorlabel)
+        # factorlabel <- input$factorlabel
+        # measurelabel <- input$measurelabel
+        # xlabel <- input$xlabel
+        # ylabel <- input$ylabel
+        # print(factorlabel)
+        # print(measurelabel)
+        # print(xlabel)
+        # print(ylabel)
+        
+        # ### PROCESSING THE DATA   
+        # data_proc <- na.omit(data_original)
+        # data_proc <- subset(data_proc, data_proc[[factorlabel]] == xlabel |
+        #                     data_proc[[factorlabel]] == ylabel)
+        # x_data_proc <- subset(data_proc, data_proc[[factorlabel]] == xlabel)
+        # y_data_proc <- subset(data_proc, data_proc[[factorlabel]] == ylabel)
+        # x <- x_data_proc[[measurelabel]]
+        # y <- y_data_proc[[measurelabel]]
+
+        # return(list(data_proc = data_proc,
+        #             x_data_proc = x_data_proc,
+        #             y_data_proc = y_data_proc,
+        #             x = x,
+        #             y = y))
+    })
 
 
     # ------------------------------------------------------------------
@@ -139,13 +112,67 @@ shinyServer(function(input, output) {
     
     output$data_table <- renderTable({
         
-        # TO DO
-        # show head() or all data? user can choose it?
-        
         # fetch the original data file and return it to the user
         data_user <- get_data()
-        return(data_user$data_original)
+        return(head(data_user, 30))
     })
+
+
+    # output$variables <- renderUI({
+
+    #     # set action if nothing is uploaded yet
+    #     user_file <- input$data_file
+    #     if (is.null(user_file))
+    #         return()
+
+    #      # reading in the data
+    #     data_original <- get_data()
+
+    #     var_list <- colnames(data_original)
+    #     if (length(var_list) == 1) {
+    #         return("File not read correctly. Your file has to have a row with a header and the deliminator has to be specified correctly.")
+    #     } else {
+    #         list(
+    #             selectInput("factorlabel", "What variable determines the groups?", choices = var_list, selected = var_list[1]),
+    #             selectInput("measurelabel", "What variable is the dependent measure?", choices = var_list, selected = var_list[2])
+    #         )
+    #     }     
+    # })
+
+
+    # output$groups <- renderUI({
+
+    #     # set action if factorlabel not set yet
+    #     if (is.null(input$factorlabel))
+    #         return()
+
+    #      # reading in the data
+    #     data_user <- get_data()
+    #     print(data_user)
+
+    #     group_list <- unique(data_user[ ,input$factorlabel])
+    #     print(group_list)
+        
+    #     # return
+    #     list(
+    #         selectInput("xlabel", "What will be your group 1?", choices = group_list, selected = group_list[1]),
+    #         selectInput("xlabel", "What will be your group 2?", choices = group_list, selected = group_list[2])
+    #     )    
+    # })
+
+
+    # output$labels <- renderUI({
+
+    #     # set action if factorlabel not set yet
+    #     if (is.null(input$factorlabel))
+    #         return()
+        
+    #     # return
+    #     list(
+    #         textInput("xlabelstring", "Define the name of the variable displayed on x axis", value = input$factorlabel),
+    #         textInput("ylabelstring", "Define the name of the variable displayed on y axis", value = input$measurelabel)
+    #     )    
+    # })
 
 
     # ----
@@ -155,38 +182,20 @@ shinyServer(function(input, output) {
     output$outlier_plot <- renderPlot({
     
         # loading the data
-        data_user <- get_data()        
+        data_user <- get_proc_data()        
         data_proc <- data_user$data_proc
         x <- data_user$x
         y <- data_user$y
-
-
-        xlabel<-"high" #name group 1 - needs to match the datafile (R is case-sensitive)!
-        ylabel<-"low" #name group 2 - needs to match the datafile (R is case-sensitive)!
-
-        #Define name (header) of the grouping column in your data file (e.g., condition, time).
-        factorlabel<-"condition" #needs to match the datafile (R is case-sensitive)!
-        #Define name of the dependent measure column in your data file (e.g., reaction times, self-reported happiness)
-        measurelabel<-"answer"  #needs to match the datafile (R is case-sensitive)!
-        #Below names for axis are used. These CAN include spaces.
-        xlabelstring<-"condition" #define variables to be used for axis (can be replaced by "Any Label")
-        ylabelstring<-"answer (1-10)"  #define variables to be used for axis
-
-
-
-        ### Testing equality of variances
-
-        pvalueLevene <- leveneTest(data_proc[[measurelabel]] ~ as.factor(data_proc[[factorlabel]]))$"Pr(>F)"[1:1]
-        if (pvalueLevene < 0.05) {
-            equalvar <- "the assumption that variances are equal is rejected (consider reporting robust statistics)."
-        }
-        if (pvalueLevene >= 0.05) {
-            equalvar<-"the assumption that variances are equal is not rejected."
-        }
+        factorlabel <- input$factorlabel
+        measurelabel <- input$measurelabel
+        xlabel <- input$xlabel
+        ylabel <- input$ylabel
+        xlabelstring <- input$xlabelstring
+        ylabelstring <- input$ylabelstring
 
         ### producing a figure with outliers
         figure <- 
-            ggplot(data_proc, aes(factor(eval(parse(text = paste(factorlabel)))), eval(parse(text = paste(measurelabel))))) +
+            ggplot(data_proc, aes_string(factorlabel, measurelabel)) +
             geom_boxplot()+
             ylab(ylabelstring)  + 
             xlab(xlabelstring) + 
@@ -213,9 +222,16 @@ shinyServer(function(input, output) {
     output$normality_text <- renderText({
         
         ### loading the data
-        data_user <- get_data()
+        data_user <- get_proc_data()
         x <- data_user$x
         y <- data_user$y
+        factorlabel <- input$factorlabel
+        measurelabel <- input$measurelabel
+        xlabel <- input$xlabel
+        ylabel <- input$ylabel
+        xlabelstring <- input$xlabelstring
+        ylabelstring <- input$ylabelstring
+
 
         ### Test normality 
         normalityrejectionsx <- (statcompute(21, x, levels = c(0.05))$decision + statcompute(6, x, levels = c(0.05))$decision + statcompute(2, x, levels = c(0.05))$decision + statcompute(7, x, levels = c(0.05))$decision)
@@ -226,19 +242,25 @@ shinyServer(function(input, output) {
         if (input$test_type == "independent") {
             report <- c(
                 paste0("The independent *t*-test assumes that scores in both groups (", xlabel," and ", ylabel, ") are normally distributed. If the normality assumption is violated, the Type 1 error rate of the test is no longer controlled, and can substantially increase beyond the chosen significance level. Formally, a normality test based on the data is incorrect, and the normality assumption should be tested on additional (e.g., pilot) data. Nevertheless, a two-step procedure (testing the data for normality, and using alternatives for the traditional *t*-test if normality is violated, seems to work well (see [Rochon, Gondan, & Kieser, 2012](http://www.biomedcentral.com/1471-2288/12/81))."),
+                
                 "### Tests for normality",
+
                 "Four tests for normality are reported below for both groups. [Yap and Sim (2011, p. 2153)](http://www.tandfonline.com/doi/pdf/10.1080/00949655.2010.520163) recommend: \"If the distribution is symmetric with low kurtosis values (i.e. symmetric short-tailed distribution), then the D'Agostino-Pearson and Shapiro-Wilkes tests have good power. For symmetric distribution with high sample kurtosis (symmetric long-tailed), the researcher can use the JB, Shapiro-Wilkes, or Anderson-Darling test.\" The Kolmogorov-Smirnov (K-S) test is often used, but no longer recommended, and not included here.", 
+                "  ",
                 "If a normality test rejects the assumptions that the data is normally distributed (with *p* < .05) non-parametric or robust statistics have to be used (robust analyses are provided below).",  
-                paste0("**The normality assumption was rejected in ", normalityrejectionsx, " out of 4 normality tests for the ",xlabel, "condition, and in ", normalityrejectionsy, "out of 4 normality tests for the ", ylabel, "condition.**"),
-                paste0(
-                "Test Name  | *p*-value ", xlabel, " | *p*-value ", ylabel, 
-                "------------- | -------------- | -------------
-                Shapiro-Wilk  | *p* ", ifelse(statcompute(21, x, levels = c(0.05))$pvalue>0.001,' = ', ' < ')," ", ifelse(statcompute(21, x, levels = c(0.05))$pvalue>0.001, round(statcompute(21, x, levels = c(0.05))$pvalue, digits=3), '0.001'),"  |   *p* ", ifelse(statcompute(21, y, levels = c(0.05))$pvalue>0.001,' = ', ' < ')," ", ifelse(statcompute(21, y, levels = c(0.05))$pvalue>0.001, round(statcompute(21, y, levels = c(0.05))$pvalue, digits=3), '0.001'),"   
-                D'Agostino-Pearson  | *p* ", ifelse(statcompute(6, x, levels = c(0.05))$pvalue>0.001,' = ', ' < ')," ", ifelse(statcompute(6, x, levels = c(0.05))$pvalue>0.001, round(statcompute(6, x, levels = c(0.05))$pvalue, digits=3), '0.001')," |  *p* ", ifelse(statcompute(6, y, levels = c(0.05))$pvalue>0.001,' = ', ' < ')," ", ifelse(statcompute(6, y, levels = c(0.05))$pvalue>0.001, round(statcompute(6, y, levels = c(0.05))$pvalue, digits=3), '0.001'),"
-                Anderson-Darling  | *p* ", ifelse(statcompute(2, x, levels = c(0.05))$pvalue>0.001,' = ', ' < ')," ", ifelse(statcompute(2, x, levels = c(0.05))$pvalue>0.001, round(statcompute(2, x, levels = c(0.05))$pvalue, digits=3), '0.001'),"  | *p* ", ifelse(statcompute(2, y, levels = c(0.05))$pvalue>0.001,' = ', ' < ')," ", ifelse(statcompute(2, y, levels = c(0.05))$pvalue>0.001, round(statcompute(2, y, levels = c(0.05))$pvalue, digits=3), '0.001'),"    
-                Jarque-Berra  | *p* ", ifelse(statcompute(7, x, levels = c(0.05))$pvalue>0.001,' = ', ' < ')," ", ifelse(statcompute(7, x, levels = c(0.05))$pvalue>0.001, round(statcompute(7, x, levels = c(0.05))$pvalue, digits=3), '0.001')," |   *p* ", ifelse(statcompute(7, y, levels = c(0.05))$pvalue>0.001,' = ', ' < ')," ", ifelse(statcompute(7, y, levels = c(0.05))$pvalue>0.001, round(statcompute(7, y, levels = c(0.05))$pvalue, digits=3), '0.001')
-                ),
+                "  ",
+                paste0("**The normality assumption was rejected in ", normalityrejectionsx, " out of 4 normality tests for the ",xlabel, "condition, and in ", normalityrejectionsy, " out of 4 normality tests for the ", ylabel, " condition.**"),
+                "  ",
+                paste0("Test Name  | *p*-value ", xlabel, " | *p*-value ", ylabel), 
+                "------------- | :--------------: | :-------------:",
+                paste0("Shapiro-Wilk  | *p* ", ifelse(statcompute(21, x, levels = c(0.05))$pvalue>0.001,' = ', ' < ')," ", ifelse(statcompute(21, x, levels = c(0.05))$pvalue>0.001, round(statcompute(21, x, levels = c(0.05))$pvalue, digits=3), '0.001'),"  |   *p* ", ifelse(statcompute(21, y, levels = c(0.05))$pvalue>0.001,' = ', ' < ')," ", ifelse(statcompute(21, y, levels = c(0.05))$pvalue>0.001, round(statcompute(21, y, levels = c(0.05))$pvalue, digits=3), '0.001')),   
+                paste0("D'Agostino-Pearson  | *p* ", ifelse(statcompute(6, x, levels = c(0.05))$pvalue>0.001,' = ', ' < ')," ", ifelse(statcompute(6, x, levels = c(0.05))$pvalue>0.001, round(statcompute(6, x, levels = c(0.05))$pvalue, digits=3), '0.001')," |  *p* ", ifelse(statcompute(6, y, levels = c(0.05))$pvalue>0.001,' = ', ' < ')," ", ifelse(statcompute(6, y, levels = c(0.05))$pvalue>0.001, round(statcompute(6, y, levels = c(0.05))$pvalue, digits=3), '0.001')),
+                paste0("Anderson-Darling  | *p* ", ifelse(statcompute(2, x, levels = c(0.05))$pvalue>0.001,' = ', ' < ')," ", ifelse(statcompute(2, x, levels = c(0.05))$pvalue>0.001, round(statcompute(2, x, levels = c(0.05))$pvalue, digits=3), '0.001'),"  | *p* ", ifelse(statcompute(2, y, levels = c(0.05))$pvalue>0.001,' = ', ' < ')," ", ifelse(statcompute(2, y, levels = c(0.05))$pvalue>0.001, round(statcompute(2, y, levels = c(0.05))$pvalue, digits=3), '0.001')),    
+                paste0("Jarque-Berra  | *p* ", ifelse(statcompute(7, x, levels = c(0.05))$pvalue>0.001,' = ', ' < ')," ", ifelse(statcompute(7, x, levels = c(0.05))$pvalue>0.001, round(statcompute(7, x, levels = c(0.05))$pvalue, digits=3), '0.001')," |   *p* ", ifelse(statcompute(7, y, levels = c(0.05))$pvalue>0.001,' = ', ' < ')," ", ifelse(statcompute(7, y, levels = c(0.05))$pvalue>0.001, round(statcompute(7, y, levels = c(0.05))$pvalue, digits=3), '0.001')),
+                "  ",
+                "  ",
                 "In very large samples (when the test for normality has close to 100% power) tests for normality can result in significant results even when data is normally distributed, based on minor deviations from normality. In very small samples (e.g., n = 10), deviations from normality might not be detected, but this does not mean the data is normally distributed.  Always look at a plot of the data in addition to the test results.",
+                
                 "### Histogram, kernel density plot (black line) and normal distribution (red line) of difference scores",
                 "The density (or proportion of the observations) is plotted on the y-axis. The grey bars are a histogram of the scores in the two groups. Judging whether data is normally distributed on the basis of a histogram depends too much on the number of bins (or bars) in the graph. A kernel density plot (a non-parametric technique for density estimation) provides an easier way to check the normality of the data by comparing the shape of the density plot (the black line) with a normal distribution (the red dotted line, based on the observed mean and standard deviation). For independent *t*-tests, the dependent variables in both conditions should be normally distributed."
             )
@@ -254,23 +276,32 @@ shinyServer(function(input, output) {
     output$hist_plot <- renderPlot({
     
         ### loading the data
-        data_user <- get_data()
+        data_user <- get_proc_data()
         x_data_proc <- data_user$x_data_proc
         y_data_proc <- data_user$y_data_proc
+        x <- data_user$x
+        y <- data_user$y
+        factorlabel <- input$factorlabel
+        measurelabel <- input$measurelabel
+        xlabel <- input$xlabel
+        ylabel <- input$ylabel
+        xlabelstring <- input$xlabelstring
+        ylabelstring <- input$ylabelstring
         
         
         ### density plot with normal distribution (red) and kernel desity plot
-        plot_x <- ggplot(x_data_proc, aes(x=eval(parse(text=paste(measurelabel)))))  + 
-              geom_histogram(colour="black", fill="grey", aes(y = ..density..)) +
-              stat_function(fun = dnorm, args = c(mean=mean(x), sd=sd(x)), size = 1, color = "red", lty=2) +
-              geom_density(fill=NA, colour="black", size = 1) +
-              xlab(measurelabel)  + 
-              ggtitle(xlabel) + 
-              theme_bw(base_size=14) + 
-              theme(panel.grid.major.x = element_blank(), 
-                    panel.grid.minor.x = element_blank())
+        plot_x <- 
+            ggplot(x_data_proc, aes_string(x=measurelabel))  + 
+            geom_histogram(colour="black", fill="grey", aes(y = ..density..)) +
+            stat_function(fun = dnorm, args = c(mean=mean(x), sd=sd(x)), size = 1, color = "red", lty=2) +
+            geom_density(fill=NA, colour="black", size = 1) +
+            xlab(measurelabel)  + 
+            ggtitle(xlabel) + 
+            theme_bw(base_size=14) + 
+            theme(panel.grid.major.x = element_blank(), 
+                panel.grid.minor.x = element_blank())
 
-        plot_y <- ggplot(y_data_proc, aes(x=eval(parse(text=paste(measurelabel)))))  + 
+        plot_y <- ggplot(y_data_proc, aes_string(x=measurelabel))  + 
               geom_histogram(colour="black", fill="grey", aes(y = ..density..)) +
               stat_function(fun = dnorm, args = c(mean=mean(y), sd=sd(y)), size = 1, color = "red", lty=2) +
               geom_density(fill=NA, colour="black", size = 1) +
@@ -287,9 +318,15 @@ shinyServer(function(input, output) {
 
     
     output$qqplot_text <- renderText({
+
+        xlabel <- input$xlabel
+        ylabel <- input$ylabel
         
         if (input$test_type == "independent") {
-            report <- paste0("In the Q-Q plots for the ", xlabel, " and ", ylabel, " conditions the points should fall on the line. Deviations from the line in the upper and lower quartiles indicates the tails of the distributions are thicker or thinner than in the normal distribution. An S-shaped curve with a dip in the middle indicates data is left-skewed (more values to the right of the distribution), while a bump in the middle indicates data is right-skewed (more values to the left of the distribution). For interpretation examples, see [here](http://emp.byui.edu/BrownD/Stats-intro/dscrptv/graphs/qq-plot_egs.htm).")
+            report <- c(
+                "### Q-Q-plot",
+                paste0("In the Q-Q plots for the ", xlabel, " and ", ylabel, " conditions the points should fall on the line. Deviations from the line in the upper and lower quartiles indicates the tails of the distributions are thicker or thinner than in the normal distribution. An S-shaped curve with a dip in the middle indicates data is left-skewed (more values to the right of the distribution), while a bump in the middle indicates data is right-skewed (more values to the left of the distribution). For interpretation examples, see [here](http://emp.byui.edu/BrownD/Stats-intro/dscrptv/graphs/qq-plot_egs.htm).")
+            )
         } else if (input$test_type == "dependent") {
             report <- "not yet..."
         }
@@ -302,9 +339,15 @@ shinyServer(function(input, output) {
     output$qq_plot <- renderPlot({
     
         # loading the data
-        data_user <- get_data()
+        data_user <- get_proc_data()
         x <- data_user$x
         y <- data_user$y
+        factorlabel <- input$factorlabel
+        measurelabel <- input$measurelabel
+        xlabel <- input$xlabel
+        ylabel <- input$ylabel
+        xlabelstring <- input$xlabelstring
+        ylabelstring <- input$ylabelstring
 
         
         ### Q-Q plot
@@ -324,6 +367,50 @@ shinyServer(function(input, output) {
 
         return(figure)
     })
+
+
+    output$eqvar_text <- renderText({
+
+        # loading the data
+        data_user <- get_proc_data()        
+        data_proc <- data_user$data_proc
+        x <- data_user$x
+        y <- data_user$y
+        factorlabel <- input$factorlabel
+        measurelabel <- input$measurelabel
+        xlabel <- input$xlabel
+        ylabel <- input$ylabel
+        xlabelstring <- input$xlabelstring
+        ylabelstring <- input$ylabelstring
+
+
+        ### Testing equality of variances
+
+        pvalueLevene <- leveneTest(data_proc[[measurelabel]] ~ as.factor(data_proc[[factorlabel]]))$"Pr(>F)"[1:1]
+        if (pvalueLevene < 0.05) {
+            equalvar <- "the assumption that variances are equal is rejected (consider reporting robust statistics)."
+        } else if (pvalueLevene >= 0.05) {
+            equalvar<-"the assumption that variances are equal is not rejected."
+        }
+        
+        if (input$test_type == "independent") {
+            report <- c(
+                "## Equal variances assumption",
+
+                "In addition to the normality assumption, a second assumption of Student's *t*-test is that variances in both groups are equal. As [Ruxton (2006)](http://beheco.oxfordjournals.org/content/17/4/688.full) explains: \"If you want to compare the central tendency of 2 populations based on samples of unrelated data, then the unequal variance (or Welch's) *t*-test should always be used in preference to the Student's *t*-test or Mann-Whitney U test.\" This is preferable to the more traditional two-step approach of first testing equality of variances using Levene's test, and then deciding between Student's and Welch's *t*-test. The degrees of freedom for Welch's *t*-test is typically not a round number.",
+
+                "### Levene's test",
+
+                paste0("The equality of variances assumption is typically examined with Levene's test, although as explained above, Welch's test is used below regardless of the outcome. Levene's test for equality of variances (*p* ", ifelse(pvalueLevene>0.001,' = ', ' < ')," ", ifelse(pvalueLevene>0.001,round(pvalueLevene, digits=3), '0.001'),") indicates that ", equalvar)
+            )
+        } else if (input$test_type == "dependent") {
+            report <- "not yet..."
+        }
+
+        html_out <- renderMarkdown(text = report)
+        return(html_out)
+    })
+
     
     
     # ----
@@ -333,10 +420,16 @@ shinyServer(function(input, output) {
     output$ttestOut <- renderText({
     
         # loading the data and user inputs
-        data_user <- get_data()        
+        data_user <- get_proc_data()        
         data_proc <- data_user$data_proc
         x <- data_user$x
         y <- data_user$y
+        factorlabel <- input$factorlabel
+        measurelabel <- input$measurelabel
+        xlabel <- input$xlabel
+        ylabel <- input$ylabel
+        xlabelstring <- input$xlabelstring
+        ylabelstring <- input$ylabelstring
         alpha <- input$alpha
         H1 <- input$alt_hyp
         ConfInt <- input$conf_int
@@ -404,9 +497,15 @@ shinyServer(function(input, output) {
     output$bayesOut <- renderText({
     
         # loading the data and user inputs
-        data_user <- get_data()        
+        data_user <- get_proc_data()        
         x <- data_user$x
         y <- data_user$y
+        factorlabel <- input$factorlabel
+        measurelabel <- input$measurelabel
+        xlabel <- input$xlabel
+        ylabel <- input$ylabel
+        xlabelstring <- input$xlabelstring
+        ylabelstring <- input$ylabelstring
         H1 <- input$alt_hyp
         ConfInt <- input$conf_int
         InAHurry <- input$InAHurry
@@ -493,10 +592,16 @@ shinyServer(function(input, output) {
     output$robustOut <- renderText({
     
         # loading the data and user inputs
-        data_user <- get_data()        
+        data_user <- get_proc_data()        
         data_proc <- data_user$data_proc
         x <- data_user$x
         y <- data_user$y
+        factorlabel <- input$factorlabel
+        measurelabel <- input$measurelabel
+        xlabel <- input$xlabel
+        ylabel <- input$ylabel
+        xlabelstring <- input$xlabelstring
+        ylabelstring <- input$ylabelstring
         H1 <- input$alt_hyp
         ConfInt <- input$conf_int
         InAHurry <- input$InAHurry
