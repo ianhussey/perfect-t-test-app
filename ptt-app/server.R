@@ -472,63 +472,64 @@ shinyServer(function(input, output) {
     # ----
     
     output$ttestOut <- renderText({
-    
-        # loading the data and user inputs
-        data_user <- get_proc_data()        
-        data_proc <- data_user$data_proc
-        x <- data_user$x
-        y <- data_user$y
-        factorlabel <- input$factorlabel
-        measurelabel <- input$measurelabel
-        xlabel <- input$xlabel
-        ylabel <- input$ylabel
-        xlabelstring <- input$xlabelstring
-        ylabelstring <- input$ylabelstring
-        alpha <- input$alpha
-        H1 <- input$alt_hyp
-        ConfInt <- input$conf_int
-
-        # Basic stats
-        sd1<-sd(x) #standard deviation of group 1
-        sd2<-sd(y) #standard deviation of group 2
-        n1 <- length(x) #number of individuals
-        n2 <- length(y) #number of individuals
-        m_diff<-mean(x)-mean(y)
         
-        # Always performs Welch's t-test for unequal variances which is better than Levene's test followed by Student's t-test
-        ttestresult<-t.test(x, y, alternative = H1, paired = FALSE, var.equal = FALSE, conf.level = ConfInt)
-        tvalue<-ttestresult$statistic  # store t-value from dependent t-test
-        pvalue<-ttestresult$p.value  # store p-value from dependent t-test
-        CI_diff<-ttestresult$conf.int  # store confidence interval of mean difference
-        s_av <- sqrt((sd1^2+sd2^2)/2)  # calculate average standard deviation for effect size calculation
-
-        # Specify direction of difference
-        if (mean(x) > mean(y)) {direction <- "greater than"}
-        if (mean(x) < mean(y)) {direction <- "smaller than"}
-        if (pvalue < alpha) {surprising <- "surprising"}
-        if (pvalue >= alpha) {surprising <- " not surprising"}
-
-        ### Cohen's d
-        d <- smd(Mean.1= mean(x), Mean.2=mean(y), s.1=sd(x), s.2=sd(y), n.1=n1, n.2=n2, Unbiased=TRUE) #Use MBESS to calc d unbiased (Hedges g)
-        if (is.finite(d) == FALSE) {
-            d <- smd(Mean.1= mean(x), Mean.2=mean(y), s.1=sd(x), s.2=sd(y), n.1=n1, n.2=n2, Unbiased=FALSE)
-        }  # In large samples, smd function gives error when Unbiased=TRUE. Difference in d and g no longer noticable, so then unbiased d is calculated.
-
-        ci_l_d <- ci.smd(ncp = tvalue, n.1 = n1, n.2 = n2, conf.level=1-.05)$Lower.Conf.Limit.smd
-        ci_u_d <- ci.smd(ncp = tvalue, n.1 = n1, n.2 = n2, conf.level=1-.05)$Upper.Conf.Limit.smd
-
-        # Common Langaue Effect Size (McGraw & Wong, 1992)
-        CL <- pnorm(abs(m_diff)/sqrt(sd1^2+sd2^2))
-
-        # Interpret size of effect (last resort - use only if effect size cannot be compared to other relevant effects in the literature)
-        if (abs(d) < 0.2) {effectsize <- "tiny"}
-        if (0.2 <= abs(d) && abs(d) < 0.5) {effectsize <- "small"}
-        if (0.5 <= abs(d) && abs(d) < 0.8) {effectsize <- "medium"}
-        if (abs(d) >= 0.8) {effectsize <- "large"}
-
-        
-        # creating a report
+        # creating a report depending on the type of test
         if (input$test_type == "independent") {
+
+            # loading the data and user inputs
+            data_user <- get_proc_data()        
+            data_proc <- data_user$data_proc
+            x <- data_user$x
+            y <- data_user$y
+            factorlabel <- input$factorlabel
+            measurelabel <- input$measurelabel
+            xlabel <- input$xlabel
+            ylabel <- input$ylabel
+            xlabelstring <- input$xlabelstring
+            ylabelstring <- input$ylabelstring
+            alpha <- input$alpha
+            H1 <- input$alt_hyp
+            ConfInt <- input$conf_int
+
+            # Basic stats
+            sd1<-sd(x) #standard deviation of group 1
+            sd2<-sd(y) #standard deviation of group 2
+            n1 <- length(x) #number of individuals
+            n2 <- length(y) #number of individuals
+            m_diff<-mean(x)-mean(y)
+            
+            # Always performs Welch's t-test for unequal variances which is better than Levene's test followed by Student's t-test
+            ttestresult<-t.test(x, y, alternative = H1, paired = FALSE, var.equal = FALSE, conf.level = ConfInt)
+            tvalue<-ttestresult$statistic  # store t-value from dependent t-test
+            pvalue<-ttestresult$p.value  # store p-value from dependent t-test
+            CI_diff<-ttestresult$conf.int  # store confidence interval of mean difference
+            s_av <- sqrt((sd1^2+sd2^2)/2)  # calculate average standard deviation for effect size calculation
+
+            # Specify direction of difference
+            if (mean(x) > mean(y)) {direction <- "greater than"}
+            if (mean(x) < mean(y)) {direction <- "smaller than"}
+            if (pvalue < alpha) {surprising <- "surprising"}
+            if (pvalue >= alpha) {surprising <- " not surprising"}
+
+            ### Cohen's d
+            d <- smd(Mean.1= mean(x), Mean.2=mean(y), s.1=sd(x), s.2=sd(y), n.1=n1, n.2=n2, Unbiased=TRUE) #Use MBESS to calc d unbiased (Hedges g)
+            if (is.finite(d) == FALSE) {
+                d <- smd(Mean.1= mean(x), Mean.2=mean(y), s.1=sd(x), s.2=sd(y), n.1=n1, n.2=n2, Unbiased=FALSE)
+            }  # In large samples, smd function gives error when Unbiased=TRUE. Difference in d and g no longer noticable, so then unbiased d is calculated.
+
+            ci_l_d <- ci.smd(ncp = tvalue, n.1 = n1, n.2 = n2, conf.level=1-.05)$Lower.Conf.Limit.smd
+            ci_u_d <- ci.smd(ncp = tvalue, n.1 = n1, n.2 = n2, conf.level=1-.05)$Upper.Conf.Limit.smd
+
+            # Common Langaue Effect Size (McGraw & Wong, 1992)
+            CL <- pnorm(abs(m_diff)/sqrt(sd1^2+sd2^2))
+
+            # Interpret size of effect (last resort - use only if effect size cannot be compared to other relevant effects in the literature)
+            if (abs(d) < 0.2) {effectsize <- "tiny"}
+            if (0.2 <= abs(d) && abs(d) < 0.5) {effectsize <- "small"}
+            if (0.5 <= abs(d) && abs(d) < 0.8) {effectsize <- "medium"}
+            if (abs(d) >= 0.8) {effectsize <- "large"}
+
+            # finally, creating a report
             report <- c(
                 "## Frequentist statistics",
                 paste0("A *p*-value is the probability of obtaining the observed result, or a more extreme result, assuming the null-hypothesis is true. It is not the probability that the null-hypothesis or the alternative hypothesis is true (for such inferences, see Bayesian statistics below). In repeated sampling, ", 100*ConfInt,"% of future ", 100*ConfInt, "% confidence intervals can be expected to contain the true population paramters (e.g, the mean difference or the effect size). Confidence intervals are not a statement about the probability that a single confidence interval contains the true population parameter, but a statement about the probability that future confidence intervals will contain the true population parameter. Hedges' *g* (also referred to as *d*~unbiased~, see Borenstein, Hedges, Higgins, & Rothstein, 2009) is provided as best estimate of Cohen's *d*, but the best estimate of the confidence interval is based on *d* (as recommended by Cumming, 2012). Hedges's *g* and the ", 100*ConfInt, "% CI around the effect size are calculated using the MBESS package by ([Kelley (2007](http://dx.doi.org/10.3758/BF03192993)). The common language effect size expresses the probability that in any random pairing of two observations from both groups, the observation from one group is higher than the observation from the other group, see [McGraw & Wong, 1992](http://dx.doi.org/10.1037/0033-2909.111.2.361). Default interpretations of the size of an effect as provided here should only be used as a last resort, and it is preferable to interpret the size of the effect in relation to other effects in the literature, or in terms of its practical significance."),
@@ -536,6 +537,70 @@ shinyServer(function(input, output) {
                 paste0("The mean ", ylabelstring," of participants in the ", xlabel," condition (*M* = ", round(mean(x), digits = 2),", *SD* = ", round(sd1, digits = 2),", *n* = ", n1,") was ", direction," the mean of participants in the ", ylabel," condition (*M* = ", round(mean(y), digits = 2),", *SD* = ", round(sd2,digits=2),", *n* = ", n2,"). The difference between the two measurements (*M* = ", round(m_diff, digits=2),", ", 100*ConfInt,"% CI = [", round(CI_diff[1:1], digits=2),";", round(CI_diff[2:2],digits=2),"]) was analyzed with Welch's *t*-test, *t*(", round(ttestresult$parameter, digits=2),") = ", round(tvalue, digits=2),", *p* ", ifelse(pvalue>0.001,' = ', ' < ')," ", ifelse(pvalue>0.001,formatC(round(pvalue, digits=3),digits=3, format='f'), '0.001'),", Hedges' *g* = ", round(d, digits=2),", ", 100*ConfInt,"% CI [", round(ci_l_d, digits=2),";", round(ci_u_d, digits=2),"]. This can be considered a ", effectsize," effect. The observed data is ", surprising," under the assumption that the null-hypothesis is true. The Common Language effect size (McGraw & Wong, 1992) indicates that the likelihood that the ", ylabelstring," of a random person in the ", xlabel," condition is ", direction," the ", ylabelstring," of a random person in the ", ylabel," condition is ", round(100*CL, digits=0),"%.")
             )
         } else if (input$test_type == "dependent") {
+
+            # loading the data and user inputs
+            data_user <- get_proc_data()        
+            data_proc <- data_user$data_proc
+            diff <- data_proc[["diff"]]
+            x <- data_user$x
+            y <- data_user$y
+            factorlabel <- input$factorlabel
+            measurelabel <- input$measurelabel
+            subgrouplabel <- input$subgrouplabel
+            subgrouptokeep <- input$subgrouptokeep
+            xlabel <- input$xlabel
+            ylabel <- input$ylabel
+            xlabelstring <- input$xlabelstring
+            ylabelstring <- input$ylabelstring
+            alpha <- input$alpha
+            H1 <- input$alt_hyp
+            ConfInt <- input$conf_int
+
+            # Calculate based on data
+            r <- cor(x, y)  # correlation between dependent measures
+            m_diff <- mean(diff)  # mean of difference scores
+            s_diff <- sd(diff)  # standard deviation of difference scores
+            sd1 <- sd(x)  # standard deviation of group 1
+            sd2 <- sd(y)  # standard deviation of group 2
+            N <- length(x)  # number of pairs
+
+            ttestresult <- t.test(x, y, alternative = H1, paired = TRUE, var.equal = TRUE, conf.level = ConfInt)
+            tvalue <- ttestresult$statistic  # store t-value from dependent t-test
+            pvalue <- ttestresult$p.value  # store p-value from dependent t-test
+            CI_diff <- ttestresult$conf.int  # store confidence interval of mean difference
+            s_av <- sqrt((sd1^2+sd2^2)/2)  # calculate average standard deviation for effect size calculation
+
+            # Specify direction of difference
+            if (mean(x)>mean(y)) {direction  <- "greater than"}
+            if (mean(x)<mean(y)) {direction  <- "smaller than"}
+            if (pvalue < alpha)  {surprising <- "surprising"}
+            if (pvalue >= alpha) {surprising <- "not surprising"}
+
+
+            ### Effect sizes and 95% CI
+            
+            # Cohen's d_av, using s_av as standardizer
+            d_av <- m_diff/s_av
+            d_unb <- (1-(3/(4*(N-1)-1)))*d_av  # note this is approximation of correction for Hedges'g - ESCI uses accurate correction, so should we.
+            nct_limits <- conf.limits.nct(t.value = tvalue, df=N-1, conf.level = ConfInt)
+            ci_l_d_av <- nct_limits$Lower.Limit*s_diff/(s_av*sqrt(N))
+            ci_u_d_av <- nct_limits$Upper.Limit*s_diff/(s_av*sqrt(N))
+
+            # Interpret size of effect (last resort - use only if effect size cannot be compared to other relevant effects in the literature)
+            if (abs(d_av) < 0.2){effectsize <- "tiny"}
+            if (0.2 <= abs(d_av) && abs(d_av) < 0.5){effectsize <- "small"}
+            if (0.5 <= abs(d_av) && abs(d_av) < 0.8){effectsize <- "medium"}
+            if (abs(d_av) >= 0.8){effectsize <- "large"}
+
+            # Cohen's d_z, using s_diff as standardizer
+            d_z <- tvalue/sqrt(N)
+            ci_l_d_z <- nct_limits$Lower.Limit/sqrt(N)  # Not sure about this formula, but gives same results as Wuensch's files
+            ci_u_d_z <- nct_limits$Upper.Limit/sqrt(N)  # Not sure about this formula
+
+            # Common Langaue Effect Size (McGraw & Wong, 1992)
+            CL <- pnorm(abs(m_diff/s_diff))
+
+            # finally, creating a report
             report <- c(
                 "## Frequentist statistics",
 
@@ -652,75 +717,125 @@ shinyServer(function(input, output) {
     # ----
     
     output$robustOut <- renderText({
-    
-        # loading the data and user inputs
-        data_user <- get_proc_data()        
-        data_proc <- data_user$data_proc
-        x <- data_user$x
-        y <- data_user$y
-        factorlabel <- input$factorlabel
-        measurelabel <- input$measurelabel
-        xlabel <- input$xlabel
-        ylabel <- input$ylabel
-        xlabelstring <- input$xlabelstring
-        ylabelstring <- input$ylabelstring
-        H1 <- input$alt_hyp
-        ConfInt <- input$conf_int
-        InAHurry <- input$InAHurry
-        alpha <- input$alpha
-        bootstraps <- input$bootstraps
-
-        
-        ### Robust Statistics
-
-        yuentest <- yuenbt(x, y, tr=0.2, alpha=1-ConfInt, nboot=599, side=T)  #for details of this function, see Wilcox, 2012, p. 163).
-
-        # Specify direction of difference
-        if(yuentest$est.1 > yuentest$est.2) {direction2 <- "greater than"}
-        if(yuentest$est.1 < yuentest$est.2) {direction2 <- "smaller than"}
-        if(yuentest$p.value < alpha) {surprising2 <- "surprising"}
-        if(yuentest$p.value >= alpha) {surprising2 <- " not surprising"}
-
-
-        ### Robust d (d_t) based on Algina, Keselman, and Penfield (2005). 
-        if(!InAHurry) {
-            d_robust_sum <- bootES(data_proc, R=bootstraps, data.col = measurelabel, group.col = factorlabel, contrast = c(xlabel, ylabel), effect.type = "akp.robust.d")
-            d_robust <- d_robust_sum$t0
-            d_robust_ci_l <- d_robust_sum$bounds[1:1]
-            d_robust_ci_u <- d_robust_sum$bounds[2:2]
-        } else {
-            d_robust <- "NOT CALCULATED DUE TO TIME CONSTRAINTS"
-            d_robust_ci_l <- "NOT CALCULATED"
-            d_robust_ci_u <- "NOT CALCULATED"
-        }
-        
-        ### Interpret size of effect (last resort - use only if effect size cannot be compared to other relevant effects in the literature)
-        if(!InAHurry) {
-            if (abs(d_robust) < 0.2) {
-                effectsize2 <- "tiny"
-            } else if (0.2 <= abs(d_robust) && abs(d_robust) < 0.5) {effectsize2 <- "small"
-            } else if (0.5 <= abs(d_robust) && abs(d_robust) < 0.8) {effectsize2 <- "medium"
-            } else if (abs(d_robust) >= 0.8) {
-                effectsize2 <- "large"
-            }
-        } else {
-            effectsize2 <- "EFFECT SIZE NOT DETERMINED"
-        }
-        
-        
+       
         # creating a report
         if (input$test_type == "independent") {
+
+            # loading the data and user inputs
+            data_user <- get_proc_data()        
+            data_proc <- data_user$data_proc
+            x <- data_user$x
+            y <- data_user$y
+            factorlabel <- input$factorlabel
+            measurelabel <- input$measurelabel
+            xlabel <- input$xlabel
+            ylabel <- input$ylabel
+            xlabelstring <- input$xlabelstring
+            ylabelstring <- input$ylabelstring
+            H1 <- input$alt_hyp
+            ConfInt <- input$conf_int
+            InAHurry <- input$InAHurry
+            alpha <- input$alpha
+            bootstraps <- input$bootstraps
+
+            
+            ### Robust Statistics
+
+            yuentest <- yuenbt(x, y, tr=0.2, alpha=1-ConfInt, nboot=599, side=T)  #for details of this function, see Wilcox, 2012, p. 163).
+
+            # Specify direction of difference
+            if(yuentest$est.1 > yuentest$est.2) {direction2 <- "greater than"}
+            if(yuentest$est.1 < yuentest$est.2) {direction2 <- "smaller than"}
+            if(yuentest$p.value < alpha) {surprising2 <- "surprising"}
+            if(yuentest$p.value >= alpha) {surprising2 <- " not surprising"}
+
+
+            ### Robust d (d_t) based on Algina, Keselman, and Penfield (2005). 
+            if(!InAHurry) {
+                d_robust_sum <- bootES(data_proc, R=bootstraps, data.col = measurelabel, group.col = factorlabel, contrast = c(xlabel, ylabel), effect.type = "akp.robust.d")
+                d_robust <- d_robust_sum$t0
+                d_robust_ci_l <- d_robust_sum$bounds[1:1]
+                d_robust_ci_u <- d_robust_sum$bounds[2:2]
+            } else {
+                d_robust <- "NOT CALCULATED DUE TO TIME CONSTRAINTS"
+                d_robust_ci_l <- "NOT CALCULATED"
+                d_robust_ci_u <- "NOT CALCULATED"
+            }
+            
+            ### Interpret size of effect (last resort - use only if effect size cannot be compared to other relevant effects in the literature)
+            if(!InAHurry) {
+                if (abs(d_robust) < 0.2) {
+                    effectsize2 <- "tiny"
+                } else if (0.2 <= abs(d_robust) && abs(d_robust) < 0.5) {effectsize2 <- "small"
+                } else if (0.5 <= abs(d_robust) && abs(d_robust) < 0.8) {effectsize2 <- "medium"
+                } else if (abs(d_robust) >= 0.8) {
+                    effectsize2 <- "large"
+                }
+            } else {
+                effectsize2 <- "EFFECT SIZE NOT DETERMINED"
+            }
+
+            # finally, creating a report
             report <- c(
                 "## Robust statistics",
 
                 "Values in the tails of the distribution can have a strong influence on the mean. If values in the tails differ from a normal distribution, the power of a test is reduced and the effect size estimates are biased, even under slight deviations from normality (Wilcox, 2012). One way to deal with this problem is to remove the tails in the analysis by using *trimmed means*. A recommended percentage of trimming is 20% from both tails (Wilcox, 2012), which means inferences are based on the 60% of the data in the middle of the distribution. Yuen's method can be used to compare trimmed means (when the percentage of trimming is 0%, Yuen's method reduces to Welch's *t*-test). Here, a bootstrapped version of Yuen's (1974) adaptation of Welch's two-sample test with trimmed means and windsorized variances is used that returns symmetric confidence intervals (see Keselman, Othman, Wilcox, & Fradette, 2004). Robust effect sizes and their confidence intervals are calculated using bootES by [Kirby and Gerlanc (2013)](http://web.williams.edu/Psychology/Faculty/Kirby/bootes-kirby-gerlanc-in-press.pdf) following Algina, Keselman, and Penfield (2005).",
 
                 "### Results",
-# direction was specified below? is that an error? should be direction2?
+
                 paste0("The 20% trimmed mean ", ylabelstring," of participants in the ", xlabel," condition (*M* = ", round(yuentest$est.1, digits = 2),") was ", direction2," the 20% trimmed mean of participants in the ", ylabel," condition (*M* = ", round(yuentest$est.2, digits = 2),"). The difference in ", ylabelstring," between the conditions (*M* = ", round(yuentest$est.dif, digits = 2),", ", 100*ConfInt,"% symmetric CI [", round(yuentest$ci[1], digits = 2),";", round(yuentest$ci[2], digits = 2),"]) was analyzed using the Yuen-Welch test for 20% trimmed means, *t* = ", round(yuentest$test.stat, digits = 2),", *p* ", ifelse(yuentest$p.value>=0.001," = ", " < ")," ", ifelse(yuentest$p.value>=0.001,formatC(round(yuentest$p.value, digits = 3)), "0.001"),", Robust *d~t~* = ", ifelse(!InAHurry,round(d_robust, digits = 2),'NOT CALCULATED'),",  ", 100*ConfInt,"% CI = [", ifelse(!InAHurry,round(d_robust_ci_l, digits = 2), 'NOT CALCULATED'),";", ifelse(!InAHurry,round(d_robust_ci_u, digits = 2), 'NOT CALCULATED'),"]). The observed data is ", surprising2," under the assumption that the null-hypothesis is true. This can be considered a ", effectsize2," effect.")
             )
         } else if (input$test_type == "dependent") {
-            report <- "not yet..."
+
+            # loading the data and user inputs
+            data_user <- get_proc_data()        
+            data_proc <- data_user$data_proc
+            diff <- data_proc[["diff"]]
+            x <- data_user$x
+            y <- data_user$y
+            factorlabel <- input$factorlabel
+            measurelabel <- input$measurelabel
+            subgrouplabel <- input$subgrouplabel
+            subgrouptokeep <- input$subgrouptokeep
+            xlabel <- input$xlabel
+            ylabel <- input$ylabel
+            xlabelstring <- input$xlabelstring
+            ylabelstring <- input$ylabelstring
+            alpha <- input$alpha
+            H1 <- input$alt_hyp
+            ConfInt <- input$conf_int
+
+
+            ### Robust Statistics
+            
+            yuend <- yuendv2(x, y, tr = 0.2, alpha = ConfInt)
+
+            # Specify direction of difference
+            if (yuend$est1>yuend$est2)  {direction2  <- "greater than"}
+            if (yuend$est1<yuend$est2)  {direction2  <- "smaller than"}
+            if (yuend$p.value < alpha)  {surprising2 <- "surprising"}
+            if (yuend$p.value >= alpha) {surprising2 <- "not surprising"}
+
+            #Interpret size of effect (last resort - use only if effect size cannot be compared to other relevant effects in the literature)
+            if (abs(yuend$Effect.Size) < 0.15) {
+                effectsize2 <- "tiny"
+            } else if (0.15 <= abs(yuend$Effect.Size) && abs(yuend$Effect.Size) < 0.35) {
+                effectsize2 <- "small"
+            } else if (0.35 <= abs(yuend$Effect.Size) && abs(yuend$Effect.Size) < 0.5){
+                effectsize2 <- "medium"
+            } else if (abs(yuend$Effect.Size) >= 0.5){
+                effectsize2 <- "large"
+            }
+
+            report <- c(
+                "## Robust statistics",
+
+                "Values in the tails of the distribution can have a strong influence on the mean. If values in the tails differ from a normal distribution, the power of a test is reduced and the effect size estimates are biased, even under slight deviations from normality (Wilcox, 2012). One way to deal with this problem is to remove the tails in the analysis by using *trimmed means*. A recommended percentage of trimming is 20% from both tails (Wilcox, 2012), which means inferences are based on the 60% of the data in the middle of the distribution. Yuen's method can be used to compare trimmed means (when the percentage of trimming is 0%, Yuen's method reduces to Welch's *t*-test). The equivalent of Cohen's *d* for within designs is not yet available, so the explanatory effect size is reported ([Wilcox & Tian, 2011](http://dx.doi.org/10.1080/02664763.2010.498507)). Explanatory power (Xi, replace in the output below by the Greek lowercase Xi symbol) is the robust equivalent of omega squared (unbiased eta squared, or *r* squared), and thus related to *d*~z~ in size, not to *d*~av~. The effect size convention of small, medium, and large corresponds approximately to Xi = 0.15, 0.35 and 0.50.", 
+
+                "### Results",
+
+                paste0("The 20% trimmed mean ", ylabelstring," of participants in the ", xlabel," condition (*M* = ", round(yuend$est1, digits = 2),")  was ", direction2," the 20% trimmed mean of participants in the ", ylabel," condition (*M* = ", round(yuend$est2, digits = 2),"). The difference in ", ylabelstring," between the conditions (*M* = ", round(yuend$dif, digits = 2),", ", 100*ConfInt,"% CI [", round(yuend$ci[1], digits = 2),";", round(yuend$ci[2], digits = 2),"]) was analyzed using the Yuen-Welch test for 20% trimmed means, *t*(", yuend$df,") = ", round(yuend$teststat, digits = 2),", *p* ", ifelse(yuend$p.value>0.001," = ", " < ")," ", ifelse(yuend$p.value>0.001, formatC(round(yuend$p.value, digits = 3), digits=3, format="f"), "0.001"),", Xi = ", round(yuend$Effect.Size, digits=2),". The observed data is ", surprising2," under the assumption that the null-hypothesis is true. This can be considered a ", effectsize2," effect.")
+            )
         }
 
         html_out <- renderMarkdown(text = report)
