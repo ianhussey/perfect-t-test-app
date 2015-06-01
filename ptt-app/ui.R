@@ -153,7 +153,7 @@ shinyUI(
     # 4th tab with robust stats
     tabPanel("Robust tests",
         fluidPage(
-
+            withMathJax(),
             # row with explanations of the figure
             fluidRow(
                 column(10, includeMarkdown("instructions_robust.md") ),
@@ -199,7 +199,9 @@ shinyUI(
     # 5th tab with bayes tests
     tabPanel("Bayesian tests",
         fluidPage(
-
+            withMathJax(),
+            helpText('An irrational number \\(\\sqrt{2}\\)
+           and a fraction $$1-\\frac{1}{2}$$'),
             # TO DO 
             # 1) we'll need some waiting indicator, or computation in progress
             # 2) in a hurry TRUE by default

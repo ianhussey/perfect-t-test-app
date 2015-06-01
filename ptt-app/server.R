@@ -61,6 +61,7 @@ shinyServer(function(input, output) {
                 measurelabel <- input$measurelabel
                 subgrouplabel <- input$subgrouplabel
                 subgrouptokeep <- input$subgrouptokeep
+                subject <- input$subject
                 xlabel <- input$xlabel
                 ylabel <- input$ylabel
                 
@@ -546,8 +547,6 @@ shinyServer(function(input, output) {
             y <- data_user$y
             factorlabel <- input$factorlabel
             measurelabel <- input$measurelabel
-            subgrouplabel <- input$subgrouplabel
-            subgrouptokeep <- input$subgrouptokeep
             xlabel <- input$xlabel
             ylabel <- input$ylabel
             xlabelstring <- input$xlabelstring
@@ -623,77 +622,80 @@ shinyServer(function(input, output) {
     
     output$bayesOut <- renderText({
     
-        # loading the data and user inputs
-        data_user <- get_proc_data()        
-        x <- data_user$x
-        y <- data_user$y
-        factorlabel <- input$factorlabel
-        measurelabel <- input$measurelabel
-        xlabel <- input$xlabel
-        ylabel <- input$ylabel
-        xlabelstring <- input$xlabelstring
-        ylabelstring <- input$ylabelstring
-        H1 <- input$alt_hyp
-        ConfInt <- input$conf_int
-        InAHurry <- input$InAHurry
-        BFrscale <- input$BFrscale
-
-        # basic stats
-        sd1<-sd(x) #standard deviation of group 1
-        sd2<-sd(y) #standard deviation of group 2
-        n1 <- length(x) #number of individuals
-        n2 <- length(y) #number of individuals
-        m_diff<-mean(x)-mean(y)
-
-        # getting the t-value from a t-test
-        ttestresult <- t.test(x, y, alternative = H1, paired = FALSE, var.equal = FALSE, conf.level = ConfInt)
-        tvalue <- ttestresult$statistic
-
-
-        ### BayesFactor
-        if (H1 == "two.sided") {
-          BF <- ttest.tstat(t = tvalue, n1 = n1, n2 = n2, 
-                            rscale = BFrscale, simple=TRUE)   
-        } else if (H1 == "greater") {
-          BF <- ttest.tstat(t = tvalue, n1 = n1, n2 = n2, nullInterval = c(0, Inf), rscale = BFrscale, simple = TRUE)
-        } else if (H1 == "less") {
-          BF <- ttest.tstat(t = tvalue, n1 = n1, n2 = n2, nullInterval = c(-Inf, 0), rscale = BFrscale, simple = TRUE)
-        }
-        if (BF != Inf) {round(BF, digits=2)}
-        if (BF == Inf) {BF <- "practically infinitely high"}
-
-        ### BEST
-        if (!InAHurry) {
-            BESTout <- BESTmcmc(x, y)
-            BESTdiff  <-  BESTout$mu1 - BESTout$mu2
-            BESTHDI <- hdi(BESTdiff, credMass = ConfInt)
-            mu <- mean(BESTdiff)
-            HDI_l <- BESTHDI[1]
-            HDI_u <- BESTHDI[2]
-            Rhat <- attr(BESTout, "Rhat")
-            neff <- attr(BESTout, "n.eff")
-            ifelse(Rhat[1]<1.1 && Rhat[1]<1.1 && neff[1]>10000 && neff[2]>10000, BESTacceptable<-"acceptable", BESTacceptable<-"not acceptable - check the HDI calculation")
-        } else {
-            mu <- "NOT CALCULATED DUE TO TIME CONSTRAINTS"
-            HDI_l <- "NOT CALCULATED"
-            HDI_u <- "NOT CALCULATED"
-        }
-       
-
-        ### Interpret strength of evidence of Bayes Factor following Jeffreys (1961)
-        if (0.33 < BF && BF <= 1){evidence <- "anecdotal evidence for H0"}
-        if (0.1 < BF && BF <=0.33){evidence <- "moderate evidence for H0"}
-        if (0.03 < BF && BF <= 0.1){evidence <- "strong evidence for H0"}
-        if (0.01 < BF && BF <= 0.03){evidence <- "very strong evidence for H0"}
-        if (BF <=0.01){evidence <- "decisive evidence for H0"}
-        if (1 < BF && BF <= 3){evidence <- "anecdotal evidence for H1"}
-        if (3 < BF && BF <=10){evidence <- "moderate evidence for H1"}
-        if (10 < BF && BF <= 30){evidence <- "strong evidence for H1"}
-        if (30 < BF && BF <= 100){evidence <- "very strong evidence for H1"}
-        if (BF > 100){evidence <- "decisive evidence for H1"}
-
-        # creating a report
+        # creating a report, depending on type of the test
         if (input$test_type == "independent") {
+
+            # loading the data and user inputs
+            data_user <- get_proc_data()        
+            x <- data_user$x
+            y <- data_user$y
+            factorlabel <- input$factorlabel
+            measurelabel <- input$measurelabel
+            xlabel <- input$xlabel
+            ylabel <- input$ylabel
+            xlabelstring <- input$xlabelstring
+            ylabelstring <- input$ylabelstring
+            H1 <- input$alt_hyp
+            ConfInt <- input$conf_int
+            InAHurry <- input$InAHurry
+            BFrscale <- input$BFrscale
+
+            # basic stats
+            sd1<-sd(x) #standard deviation of group 1
+            sd2<-sd(y) #standard deviation of group 2
+            n1 <- length(x) #number of individuals
+            n2 <- length(y) #number of individuals
+            m_diff<-mean(x)-mean(y)
+
+            # getting the t-value from a t-test
+            ttestresult <- t.test(x, y, alternative = H1, paired = FALSE, var.equal = FALSE, conf.level = ConfInt)
+            tvalue <- ttestresult$statistic
+
+
+            ### BayesFactor
+            if (H1 == "two.sided") {
+              BF <- ttest.tstat(t = tvalue, n1 = n1, n2 = n2, 
+                                rscale = BFrscale, simple=TRUE)   
+            } else if (H1 == "greater") {
+              BF <- ttest.tstat(t = tvalue, n1 = n1, n2 = n2, nullInterval = c(0, Inf), rscale = BFrscale, simple = TRUE)
+            } else if (H1 == "less") {
+              BF <- ttest.tstat(t = tvalue, n1 = n1, n2 = n2, nullInterval = c(-Inf, 0), rscale = BFrscale, simple = TRUE)
+            }
+            if (BF != Inf) {round(BF, digits=2)}
+            if (BF == Inf) {BF <- "practically infinitely high"}
+
+            ### BEST
+            if (!InAHurry) {
+                BESTout <- BESTmcmc(x, y)
+                BESTdiff  <-  BESTout$mu1 - BESTout$mu2
+                BESTHDI <- hdi(BESTdiff, credMass = ConfInt)
+                mu <- mean(BESTdiff)
+                HDI_l <- BESTHDI[1]
+                HDI_u <- BESTHDI[2]
+                Rhat <- attr(BESTout, "Rhat")
+                neff <- attr(BESTout, "n.eff")
+                ifelse(Rhat[1]<1.1 && Rhat[1]<1.1 && neff[1]>10000 && neff[2]>10000, BESTacceptable<-"acceptable", BESTacceptable<-"not acceptable - check the HDI calculation")
+            } else {
+                mu <- "NOT CALCULATED DUE TO TIME CONSTRAINTS"
+                HDI_l <- "NOT CALCULATED"
+                HDI_u <- "NOT CALCULATED"
+            }
+            
+
+            ### Interpret strength of evidence of Bayes Factor following Jeffreys (1961)
+            # this could be placed in a separate function
+            if (0.33 < BF && BF <= 1){evidence <- "anecdotal evidence for H0"}
+            if (0.1 < BF && BF <=0.33){evidence <- "moderate evidence for H0"}
+            if (0.03 < BF && BF <= 0.1){evidence <- "strong evidence for H0"}
+            if (0.01 < BF && BF <= 0.03){evidence <- "very strong evidence for H0"}
+            if (BF <=0.01){evidence <- "decisive evidence for H0"}
+            if (1 < BF && BF <= 3){evidence <- "anecdotal evidence for H1"}
+            if (3 < BF && BF <=10){evidence <- "moderate evidence for H1"}
+            if (10 < BF && BF <= 30){evidence <- "strong evidence for H1"}
+            if (30 < BF && BF <= 100){evidence <- "very strong evidence for H1"}
+            if (BF > 100){evidence <- "decisive evidence for H1"}
+
+            ### finally, creating a report
             report <- c(
                 "## Bayesian statistics",
 
@@ -701,10 +703,89 @@ shinyServer(function(input, output) {
 
                 "### Results",
 
-                paste0("The JZS BF~10~ (with r scale = ", BFrscale,") = ", round(BF, digits=2),". This indicates the data are ", round(BF, digits=2)," (or log~e~ BF =", round(log(BF), digits=2),") times more likely under the alternative hypothesis, than under the null hypothesis. This data provides ", evidence,". The posterior mean difference is ", ifelse(!InAHurry,round(mu, digits=2), 'NOT CALCULATED'),", ", 100*ConfInt,"% HDI = [", ifelse(!InAHurry,round(HDI_l, digits=2), 'NOT CALCULATED'),"; ", ifelse(!InAHurry,round(HDI_u, digits=2), 'NOT CALCULATED'),"].")
+                paste0("The JZS \\(BF_{10}\\) (with r scale = ", BFrscale,") = ", round(BF, digits=2),". This indicates the data are ", round(BF, digits=2)," (or \\(log_e\\) BF =", round(log(BF), digits=2),") times more likely under the alternative hypothesis, than under the null hypothesis. This data provides ", evidence,". The posterior mean difference is ", ifelse(!InAHurry,round(mu, digits=2), 'NOT CALCULATED'),", ", 100*ConfInt,"% HDI = [", ifelse(!InAHurry,round(HDI_l, digits=2), 'NOT CALCULATED'),"; ", ifelse(!InAHurry,round(HDI_u, digits=2), 'NOT CALCULATED'),"].")
             )
         } else if (input$test_type == "dependent") {
-            report <- "not yet..."
+
+            # loading the data and user inputs
+            data_user <- get_proc_data()        
+            data_proc <- data_user$data_proc
+            diff <- data_proc[["diff"]]
+            x <- data_user$x
+            y <- data_user$y
+            factorlabel <- input$factorlabel
+            measurelabel <- input$measurelabel
+            xlabel <- input$xlabel
+            ylabel <- input$ylabel
+            xlabelstring <- input$xlabelstring
+            ylabelstring <- input$ylabelstring
+            H1 <- input$alt_hyp
+            ConfInt <- input$conf_int
+            InAHurry <- input$InAHurry
+            BFrscale <- input$BFrscale
+
+            ### BayesFactor
+            
+            # We need t-test results first
+            N <- length(x)  
+            ttestresult <- t.test(x, y, alternative = H1, paired = TRUE, 
+                                  var.equal = TRUE, conf.level = ConfInt)
+            tvalue <- ttestresult$statistic  # store t-value from dependent t-test
+
+            # computing BF
+            if (H1 == "two.sided") {
+              BF <- ttest.tstat(t = tvalue, n1 = N, rscale = BFrscale, simple=TRUE)
+            } else if (H1 == "greater") {
+              BF <- ttest.tstat(t = tvalue, n1 = N, nullInterval = c(0, Inf), rscale = BFrscale, simple=TRUE)
+            } else if (H1 == "less") {
+              BF <- ttest.tstat(t = tvalue, n1 = N, nullInterval = c(-Inf, 0), rscale = BFrscale, simple=TRUE)
+            }
+
+            if (BF != Inf) {round(BF, digits=2)}
+            if (BF == Inf) {BF <- "practically infinitely high"}
+
+            ### calculating HIB-BEST
+            if (!InAHurry) {
+                BESTout1g <- BESTmcmc(diff)
+                BESTHDI <- hdi(BESTout1g$mu, credMass = ConfInt)
+                mu <- summary(BESTout1g)[1,1]
+                HDI_l <- BESTHDI[1]
+                HDI_u <- BESTHDI[2]
+                Rhat <- attr(BESTout1g, "Rhat")
+                neff <- attr(BESTout1g, "n.eff")
+                ifelse(Rhat[1]<1.1 && neff[1]>10000, 
+                    BESTacceptable <- "acceptable", 
+                    BESTacceptable <- "not acceptable - check the HDI calculation")  # user cannot due anything with this outcome...
+            } else {
+                mu <- "NOT CALCULATED DUE TO TIME CONSTRAINTS"
+                HDI_l <- "NOT CALCULATED"
+                HDI_u <- "NOT CALCULATED"
+            }
+
+            
+            ### Interpret strength of evidence of Bayes Factor following Jeffreys (1961)
+            # this could be placed in a separate function
+            if (0.33 < BF && BF <= 1){evidence <- "anecdotal evidence for H0"}
+            if (0.1 < BF && BF <=0.33){evidence <- "moderate evidence for H0"}
+            if (0.03 < BF && BF <= 0.1){evidence <- "strong evidence for H0"}
+            if (0.01 < BF && BF <= 0.03){evidence <- "very strong evidence for H0"}
+            if (BF <=0.01){evidence <- "decisive evidence for H0"}
+            if (1 < BF && BF <= 3){evidence <- "anecdotal evidence for H1"}
+            if (3 < BF && BF <=10){evidence <- "moderate evidence for H1"}
+            if (10 < BF && BF <= 30){evidence <- "strong evidence for H1"}
+            if (30 < BF && BF <= 100){evidence <- "very strong evidence for H1"}
+            if (BF > 100){evidence <- "decisive evidence for H1"}
+
+            ### finally, creating a report
+            report <- c(
+                "## Bayesian statistics",
+
+                paste0("Bayesian statistics can quantify the relative evidence in the data for either the alternative hypothesis or the null hypothesis. Bayesian statistics require priors to be defined. In the Bayes Factor calculation reported below, a non-informative Jeffreys prior is placed on the variance of the normal population, while a Cauchy prior is placed on the standardized effect size (for details, [see Morey & Rouder, 2011](http://drsmorey.org/bibtex/upload/Morey:Rouder:2011.pdf)). Calculations are performed using the [BayesFactor package](http://cran.r-project.org/web/packages/BayesFactor/BayesFactor.pdf). Default interpretations of the strength of the evidence are provided but should not distract from the fact that strength of evidence is a continuous function of the Bayes Factor. A second popular Bayesian approach relies on estimation, and the mean posterior and ", 100*ConfInt,"% higest density intervals (HDI) are calculated following recommendations by [Kruschke, (2013)](http://www.indiana.edu/~kruschke/BEST/BEST.pdf) based on vague priors. According to Kruschke (2010, p. 34): 'The HDI indicates which points of a distribution we believe in most strongly. The width of the HDI is another way of measuring uncertainty of beliefs. If the HDI is wide, then beliefs are uncertain. If the HDI is narrow, then beliefs are fairly certain.' To check the convergence and fit of the HDI simulations, the Brooks-Gelman-Rubin scale reduction factor for the difference score should be smaller than 1.1 (it is ", ifelse (!InAHurry, Rhat[1], 'NOT CALCULATED'),") and the effective sample size should be larger than 10000 (it is ", ifelse (!InAHurry, round(neff[1]), 'NOT CALCULATED'),"). Thus, the HDI simulation is ", ifelse (!InAHurry,BESTacceptable, 'NOT CALCULATED'),"."),
+
+                "### Results",
+
+                paste0("The JZS \\(BF_{10}\\) (with r scale = ", BFrscale,") = ", round(BF, digits=2),". This indicates the data are ", round(BF, digits = 2)," (or \\(log_e\\) BF =", round(log(BF), digits=2),") times more probable under the alternative hypothesis, than under the null hypothesis. This data provides ", evidence,". The posterior mean difference is ", ifelse(!InAHurry, round(mu, digits=2), 'NOT CALCULATED'),", ", 100*ConfInt,"% HDI = [", ifelse(!InAHurry, round(HDI_l, digits=2), 'NOT CALCULATED'),"; ", ifelse(!InAHurry, round(HDI_u, digits=2), 'NOT CALCULATED'),"].")
+            )
         }
 
         html_out <- renderMarkdown(text = report)
@@ -744,10 +825,10 @@ shinyServer(function(input, output) {
             yuentest <- yuenbt(x, y, tr=0.2, alpha=1-ConfInt, nboot=599, side=T)  #for details of this function, see Wilcox, 2012, p. 163).
 
             # Specify direction of difference
-            if(yuentest$est.1 > yuentest$est.2) {direction2 <- "greater than"}
-            if(yuentest$est.1 < yuentest$est.2) {direction2 <- "smaller than"}
-            if(yuentest$p.value < alpha) {surprising2 <- "surprising"}
-            if(yuentest$p.value >= alpha) {surprising2 <- " not surprising"}
+            if (yuentest$est.1 > yuentest$est.2) {direction2 <- "greater than"}
+            if (yuentest$est.1 < yuentest$est.2) {direction2 <- "smaller than"}
+            if (yuentest$p.value < alpha) {surprising2 <- "surprising"}
+            if (yuentest$p.value >= alpha) {surprising2 <- " not surprising"}
 
 
             ### Robust d (d_t) based on Algina, Keselman, and Penfield (2005). 
@@ -783,7 +864,7 @@ shinyServer(function(input, output) {
 
                 "### Results",
 
-                paste0("The 20% trimmed mean ", ylabelstring," of participants in the ", xlabel," condition (*M* = ", round(yuentest$est.1, digits = 2),") was ", direction2," the 20% trimmed mean of participants in the ", ylabel," condition (*M* = ", round(yuentest$est.2, digits = 2),"). The difference in ", ylabelstring," between the conditions (*M* = ", round(yuentest$est.dif, digits = 2),", ", 100*ConfInt,"% symmetric CI [", round(yuentest$ci[1], digits = 2),";", round(yuentest$ci[2], digits = 2),"]) was analyzed using the Yuen-Welch test for 20% trimmed means, *t* = ", round(yuentest$test.stat, digits = 2),", *p* ", ifelse(yuentest$p.value>=0.001," = ", " < ")," ", ifelse(yuentest$p.value>=0.001,formatC(round(yuentest$p.value, digits = 3)), "0.001"),", Robust *d~t~* = ", ifelse(!InAHurry,round(d_robust, digits = 2),'NOT CALCULATED'),",  ", 100*ConfInt,"% CI = [", ifelse(!InAHurry,round(d_robust_ci_l, digits = 2), 'NOT CALCULATED'),";", ifelse(!InAHurry,round(d_robust_ci_u, digits = 2), 'NOT CALCULATED'),"]). The observed data is ", surprising2," under the assumption that the null-hypothesis is true. This can be considered a ", effectsize2," effect.")
+                paste0("The 20% trimmed mean ", ylabelstring," of participants in the ", xlabel," condition (*M* = ", round(yuentest$est.1, digits = 2),") was ", direction2," the 20% trimmed mean of participants in the ", ylabel," condition (*M* = ", round(yuentest$est.2, digits = 2),"). The difference in ", ylabelstring," between the conditions (*M* = ", round(yuentest$est.dif, digits = 2),", ", 100*ConfInt,"% symmetric CI [", round(yuentest$ci[1], digits = 2),";", round(yuentest$ci[2], digits = 2),"]) was analyzed using the Yuen-Welch test for 20% trimmed means, *t* = ", round(yuentest$test.stat, digits = 2),", *p* ", ifelse(yuentest$p.value>=0.001," = ", " < ")," ", ifelse(yuentest$p.value>=0.001,formatC(round(yuentest$p.value, digits = 3)), '0.001'),", Robust \\(d_t\\) = ", ifelse(!InAHurry,round(d_robust, digits = 2),'NOT CALCULATED'),",  ", 100*ConfInt,"% CI = [", ifelse(!InAHurry,round(d_robust_ci_l, digits = 2), 'NOT CALCULATED'),";", ifelse(!InAHurry,round(d_robust_ci_u, digits = 2), 'NOT CALCULATED'),"]). The observed data is ", surprising2," under the assumption that the null-hypothesis is true. This can be considered a ", effectsize2," effect.")
             )
         } else if (input$test_type == "dependent") {
 
@@ -816,7 +897,7 @@ shinyServer(function(input, output) {
             if (yuend$p.value < alpha)  {surprising2 <- "surprising"}
             if (yuend$p.value >= alpha) {surprising2 <- "not surprising"}
 
-            #Interpret size of effect (last resort - use only if effect size cannot be compared to other relevant effects in the literature)
+            # Interpret size of effect (last resort - use only if effect size cannot be compared to other relevant effects in the literature)
             if (abs(yuend$Effect.Size) < 0.15) {
                 effectsize2 <- "tiny"
             } else if (0.15 <= abs(yuend$Effect.Size) && abs(yuend$Effect.Size) < 0.35) {
@@ -830,11 +911,11 @@ shinyServer(function(input, output) {
             report <- c(
                 "## Robust statistics",
 
-                "Values in the tails of the distribution can have a strong influence on the mean. If values in the tails differ from a normal distribution, the power of a test is reduced and the effect size estimates are biased, even under slight deviations from normality (Wilcox, 2012). One way to deal with this problem is to remove the tails in the analysis by using *trimmed means*. A recommended percentage of trimming is 20% from both tails (Wilcox, 2012), which means inferences are based on the 60% of the data in the middle of the distribution. Yuen's method can be used to compare trimmed means (when the percentage of trimming is 0%, Yuen's method reduces to Welch's *t*-test). The equivalent of Cohen's *d* for within designs is not yet available, so the explanatory effect size is reported ([Wilcox & Tian, 2011](http://dx.doi.org/10.1080/02664763.2010.498507)). Explanatory power (Xi, replace in the output below by the Greek lowercase Xi symbol) is the robust equivalent of omega squared (unbiased eta squared, or *r* squared), and thus related to *d*~z~ in size, not to *d*~av~. The effect size convention of small, medium, and large corresponds approximately to Xi = 0.15, 0.35 and 0.50.", 
+                "Values in the tails of the distribution can have a strong influence on the mean. If values in the tails differ from a normal distribution, the power of a test is reduced and the effect size estimates are biased, even under slight deviations from normality (Wilcox, 2012). One way to deal with this problem is to remove the tails in the analysis by using *trimmed means*. A recommended percentage of trimming is 20% from both tails (Wilcox, 2012), which means inferences are based on the 60% of the data in the middle of the distribution. Yuen's method can be used to compare trimmed means (when the percentage of trimming is 0%, Yuen's method reduces to Welch's *t*-test). The equivalent of Cohen's *d* for within designs is not yet available, so the explanatory effect size is reported ([Wilcox & Tian, 2011](http://dx.doi.org/10.1080/02664763.2010.498507)). Explanatory power (Xi, replace in the output below by the Greek lowercase Xi symbol) is the robust equivalent of omega squared (unbiased eta squared, or *r* squared), and thus related to \\(d_z\\) in size, not to \\(d_{av}\\). The effect size convention of small, medium, and large corresponds approximately to \\(\\xi = 0.15\\), 0.35 and 0.50.", 
 
                 "### Results",
 
-                paste0("The 20% trimmed mean ", ylabelstring," of participants in the ", xlabel," condition (*M* = ", round(yuend$est1, digits = 2),")  was ", direction2," the 20% trimmed mean of participants in the ", ylabel," condition (*M* = ", round(yuend$est2, digits = 2),"). The difference in ", ylabelstring," between the conditions (*M* = ", round(yuend$dif, digits = 2),", ", 100*ConfInt,"% CI [", round(yuend$ci[1], digits = 2),";", round(yuend$ci[2], digits = 2),"]) was analyzed using the Yuen-Welch test for 20% trimmed means, *t*(", yuend$df,") = ", round(yuend$teststat, digits = 2),", *p* ", ifelse(yuend$p.value>0.001," = ", " < ")," ", ifelse(yuend$p.value>0.001, formatC(round(yuend$p.value, digits = 3), digits=3, format="f"), "0.001"),", Xi = ", round(yuend$Effect.Size, digits=2),". The observed data is ", surprising2," under the assumption that the null-hypothesis is true. This can be considered a ", effectsize2," effect.")
+                paste0("The 20% trimmed mean ", ylabelstring," of participants in the ", xlabel," condition (*M* = ", round(yuend$est1, digits = 2),")  was ", direction2," the 20% trimmed mean of participants in the ", ylabel," condition (*M* = ", round(yuend$est2, digits = 2),"). The difference in ", ylabelstring," between the conditions (*M* = ", round(yuend$dif, digits = 2),", ", 100*ConfInt,"% CI [", round(yuend$ci[1], digits = 2),";", round(yuend$ci[2], digits = 2),"]) was analyzed using the Yuen-Welch test for 20% trimmed means, *t*(", yuend$df,") = ", round(yuend$teststat, digits = 2),", *p* ", ifelse(yuend$p.value>0.001,' = ', ' < ')," ", ifelse(yuend$p.value>0.001, formatC(round(yuend$p.value, digits = 3), digits=3, format='f'), '0.001'),", \\(\\xi = ", round(yuend$Effect.Size, digits=2),"\\). The observed data is ", surprising2," under the assumption that the null-hypothesis is true. This can be considered a ", effectsize2," effect.")
             )
         }
 
