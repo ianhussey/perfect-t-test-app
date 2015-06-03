@@ -18,7 +18,7 @@ library(BayesFactor)
 library(HLMdiag)
 
 
-options(scipen=20) #disable scientific notation for numbers smaller than x (i.e., 10) digits (e.g., 4.312e+22)
+options(scipen=6) #disable scientific notation for numbers smaller than x (i.e., 10) digits (e.g., 4.312e+22)
 
 
 # Define server logic 
@@ -235,27 +235,120 @@ shinyServer(function(input, output) {
     # ----
 
     output$outlier_plot <- renderPlot({
-    
-        # loading the data
-        data_user <- get_proc_data()        
-        data_proc <- data_user$data_proc
-        x <- data_user$x
-        y <- data_user$y
-        factorlabel <- input$factorlabel
-        measurelabel <- input$measurelabel
-        xlabel <- input$xlabel
-        ylabel <- input$ylabel
-        xlabelstring <- input$xlabelstring
-        ylabelstring <- input$ylabelstring
+        
+        if (input$test_type == "independent") {
+            # loading the data
+            data_user <- get_proc_data()        
+            data_proc <- data_user$data_proc
+            x <- data_user$x
+            y <- data_user$y
+            factorlabel <- input$factorlabel
+            measurelabel <- input$measurelabel
+            xlabel <- input$xlabel
+            ylabel <- input$ylabel
+            xlabelstring <- input$xlabelstring
+            ylabelstring <- input$ylabelstring
 
-        ### producing a figure with outliers
-        figure <- 
-            ggplot(data_proc, aes_string(factorlabel, measurelabel)) +
-            geom_boxplot()+
-            ylab(ylabelstring)  + 
-            xlab(xlabelstring) + 
-            theme_bw(base_size=14) + 
-            theme(panel.grid.major.x = element_blank())
+            ### producing a figure with outliers
+            figure <- 
+                ggplot(data_proc, aes_string(factorlabel, measurelabel)) +
+                geom_boxplot()+
+                ylab(ylabelstring)  + 
+                xlab(xlabelstring) + 
+                theme_bw(base_size=14) + 
+                theme(panel.grid.major.x = element_blank())
+
+        } else if (input$test_type == "dependent") {
+
+            # data
+            data_user <- get_proc_data()        
+            data_proc <- data_user$data_proc
+            diff <- data_proc[["diff"]]
+            x <- data_user$x
+            y <- data_user$y
+            factorlabel <- input$factorlabel
+            measurelabel <- input$measurelabel
+            xlabel <- input$xlabel
+            ylabel <- input$ylabel
+            xlabelstring <- input$xlabelstring
+            ylabelstring <- input$ylabelstring
+            alpha <- input$alpha
+            H1 <- input$alt_hyp
+            ConfInt <- input$conf_int
+             
+            # Main scatterplot
+            p1 <- ggplot(data_proc, aes_string(x=xlabel, y=ylabel)) + 
+                geom_point(alpha = 0.35) +
+                scale_x_continuous(expand = c(0, 0)) + 
+                scale_y_continuous(expand = c(0, 0)) + 
+                expand_limits(y = c(min(data_proc[[ylabel]]) - 0.1 * diff(range(data_proc[[ylabel]])), 
+                                  max(data_proc[[ylabel]]) + 0.1 * diff(range(data_proc[[ylabel]])))) + 
+                expand_limits(x = c(min(data_proc[[xlabel]]) - 0.1 * diff(range(data_proc[[xlabel]])), 
+                                  max(data_proc[[xlabel]]) + 0.1 * diff(range(data_proc[[xlabel]])))) +
+                theme_bw(base_size=14) +
+                ylab(ylabel)  + 
+                xlab(xlabel) +
+                theme(plot.margin= unit(c(0, 0, 0.5, 0.5), "lines"))
+              
+            # To remove all axis labelling and marks from the two marginal plots
+            theme_remove_all <- theme(axis.text = element_blank(),
+                                      axis.title = element_blank(),
+                                      axis.ticks =  element_blank(),
+                                      axis.ticks.margin = unit(0, "lines"),
+                                      axis.ticks.length = unit(0, "cm"))
+
+            # Horizontal marginal boxplot - to appear at the top of the chart
+            p2 <- ggplot(data_proc, aes_string(x = factor(1), y = xlabel)) + 
+                geom_boxplot() +
+                # geom_jitter(position = position_jitter(width = 0.05)) +
+                scale_y_continuous(expand = c(0, 0)) + 
+                expand_limits(y = c(min(data_proc[[xlabel]]) - 0.1 * diff(range(data_proc[[xlabel]])), 
+                                  max(data_proc[[xlabel]]) + 0.1 * diff(range(data_proc[[xlabel]])))) + 
+                coord_flip() +
+                theme_bw(base_size=14) +
+                theme_remove_all +
+                theme(plot.margin= unit(c(0.5, 0, 0, 0.5), "lines"))
+
+            # Vertical marginal boxplot - to appear at the right of the chart
+            p3 <- ggplot(data_proc, aes_string(x = factor(1), y = ylabel)) + 
+                geom_boxplot() +
+                #  geom_jitter(position = position_jitter(width = 0.05)) +
+                scale_y_continuous(expand = c(0, 0)) + 
+                expand_limits(y = c(min(data_proc[[ylabel]]) - 0.1 * diff(range(data_proc[[ylabel]])), 
+                                  max(data_proc[[ylabel]]) + 0.1 * diff(range(data_proc[[ylabel]])))) + 
+                theme_bw(base_size=14) +
+                theme_remove_all +
+                theme(plot.margin= unit(c(0, 0.5, 0.5, 0), "lines"))
+
+            # Get the gtables
+            gt1 <- ggplot_gtable(ggplot_build(p1))
+            gt2 <- ggplot_gtable(ggplot_build(p2))
+            gt3 <- ggplot_gtable(ggplot_build(p3))
+
+            # Get maximum widths and heights for x-axis and y-axis title and text
+            maxWidth = unit.pmax(gt1$widths[2:3], gt2$widths[2:3])
+            maxHeight = unit.pmax(gt1$heights[4:5], gt3$heights[4:5])
+
+            # Set the maximums in the gtables for gt1, gt2 and gt3
+            gt1$widths[2:3] <- as.list(maxWidth)
+            gt2$widths[2:3] <- as.list(maxWidth)
+
+            gt1$heights[4:5] <- as.list(maxHeight)
+            gt3$heights[4:5] <- as.list(maxHeight)
+
+            # Combine the scatterplot with the two marginal boxplots
+            # Create a new gtable
+            figure <- gtable(widths = unit(c(7, 1), "null"), height = unit(c(1, 7), "null"))
+
+            # Instert gt1, gt2 and gt3 into the new gtable
+            figure <- gtable_add_grob(figure, gt1, 2, 1)
+            figure <- gtable_add_grob(figure, gt2, 1, 1)
+            figure <- gtable_add_grob(figure, gt3, 2, 2)
+
+            # And render the plot
+            #grid.newpage()
+            #grid.draw(gt)
+        } 
 
         return(figure)
     })
@@ -275,26 +368,27 @@ shinyServer(function(input, output) {
 
 
     output$normality_text <- renderText({
-        
-        ### loading the data
-        data_user <- get_proc_data()
-        x <- data_user$x
-        y <- data_user$y
-        factorlabel <- input$factorlabel
-        measurelabel <- input$measurelabel
-        xlabel <- input$xlabel
-        ylabel <- input$ylabel
-        xlabelstring <- input$xlabelstring
-        ylabelstring <- input$ylabelstring
 
-
-        ### Test normality 
-        normalityrejectionsx <- (statcompute(21, x, levels = c(0.05))$decision + statcompute(6, x, levels = c(0.05))$decision + statcompute(2, x, levels = c(0.05))$decision + statcompute(7, x, levels = c(0.05))$decision)
-
-        normalityrejectionsy <- (statcompute(21, y, levels = c(0.05))$decision + statcompute(6, y, levels = c(0.05))$decision + statcompute(2, y, levels = c(0.05))$decision + statcompute(7, y, levels = c(0.05))$decision)
-
-        ### Render the text
         if (input$test_type == "independent") {
+
+            ### loading the data
+            data_user <- get_proc_data()
+            x <- data_user$x
+            y <- data_user$y
+            factorlabel <- input$factorlabel
+            measurelabel <- input$measurelabel
+            xlabel <- input$xlabel
+            ylabel <- input$ylabel
+            xlabelstring <- input$xlabelstring
+            ylabelstring <- input$ylabelstring
+
+
+            ### Test normality 
+            normalityrejectionsx <- (statcompute(21, x, levels = c(0.05))$decision + statcompute(6, x, levels = c(0.05))$decision + statcompute(2, x, levels = c(0.05))$decision + statcompute(7, x, levels = c(0.05))$decision)
+
+            normalityrejectionsy <- (statcompute(21, y, levels = c(0.05))$decision + statcompute(6, y, levels = c(0.05))$decision + statcompute(2, y, levels = c(0.05))$decision + statcompute(7, y, levels = c(0.05))$decision)
+
+            # Render the text
             report <- c(
                 paste0("The independent *t*-test assumes that scores in both groups (", xlabel," and ", ylabel, ") are normally distributed. If the normality assumption is violated, the Type 1 error rate of the test is no longer controlled, and can substantially increase beyond the chosen significance level. Formally, a normality test based on the data is incorrect, and the normality assumption should be tested on additional (e.g., pilot) data. Nevertheless, a two-step procedure (testing the data for normality, and using alternatives for the traditional *t*-test if normality is violated, seems to work well (see [Rochon, Gondan, & Kieser, 2012](http://www.biomedcentral.com/1471-2288/12/81))."),
                 
@@ -321,7 +415,49 @@ shinyServer(function(input, output) {
             )
 
         } else if (input$test_type == "dependent") {
-            report <- "not finished yet"
+
+            # loading the data and user inputs
+            data_user <- get_proc_data()        
+            data_proc <- data_user$data_proc
+            diff <- data_proc[["diff"]]
+            x <- data_user$x
+            y <- data_user$y
+            factorlabel <- input$factorlabel
+            measurelabel <- input$measurelabel
+            xlabel <- input$xlabel
+            ylabel <- input$ylabel
+            xlabelstring <- input$xlabelstring
+            ylabelstring <- input$ylabelstring
+            alpha <- input$alpha
+            H1 <- input$alt_hyp
+            ConfInt <- input$conf_int
+
+            # Test normality 
+            normalityrejections <- (statcompute(21, diff, levels = c(0.05))$decision + statcompute(6, diff, levels = c(0.05))$decision + statcompute(2, diff, levels = c(0.05))$decision + statcompute(7, diff, levels = c(0.05))$decision)
+
+            report <- c(
+                "## Normality assumption",
+
+                paste0("The dependent *t*-test assumes that *difference* scores are normally distributed and that the variances of the two groups are equal. It does *not* assume the data within each measurement (so within the ", xlabel," and ", ylabel," condition) are normally distributed. If the normality assumption is violated, the Type 1 error rate of the test is no longer controlled, and can substantially increase beyond the chosen significance level. Formally, a normality test based on the data is incorrect, and the normality assumption should be tested on additional (e.g., pilot) data. Nevertheless, a two-step procedure (testing the data for normality, and using alternatives for the traditional *t*-test if normality is violated) works well (see [Rochon, Gondan, & Kieser, 2012](http://www.biomedcentral.com/1471-2288/12/81))."),
+
+                "### Tests for normality",
+
+                "[Yap and Sim (2011, p. 2153)](http://www.tandfonline.com/doi/pdf/10.1080/00949655.2010.520163) recommend: \"If the distribution is symmetric with low kurtosis values (i.e. symmetric short-tailed distribution), then the D'Agostino-Pearson and Shapiro-Wilkes tests have good power. For symmetric distribution with high sample kurtosis (symmetric long-tailed), the researcher can use the JB, Shapiro-Wilkes, or Anderson-Darling test.\" The Kolmogorov-Smirnov (K-S) test is often used, but no longer recommended, and not included here.",
+                "  ",
+                "If a normality test rejects the assumptions that the data is normally distributed (with *p* < .05) non-parametric or robust statistics have to be used (robust analyses are provided below).",  
+                "  ",
+                paste0("**The normality assumption was rejected in ", normalityrejections," out of 4 normality tests (Anderson-Darling, D'Agostino-Pearson, and Shapiro-Wilk).**"),
+                "  ",
+                paste0("Test Name  | *p*-value"), 
+                paste0("------------- | -------------"),
+                paste0("Shapiro-Wilk  | *p* ", ifelse(statcompute(21, diff, levels = c(0.05))$pvalue>=0.001," = ", " < ")," ", ifelse(statcompute(21, diff, levels = c(0.05))$pvalue>=0.001, round(statcompute(21, diff, levels = c(0.05))$pvalue, digits=3), "0.001")),
+                paste0("D'Agostino-Pearson  | *p* ", ifelse(statcompute(6, diff, levels = c(0.05))$pvalue>0.001," = ", " < ")," ", ifelse(statcompute(6, diff, levels = c(0.05))$pvalue>0.001, round(statcompute(6, diff, levels = c(0.05))$pvalue, digits=3), "0.001")),
+                paste0("Anderson-Darling  | *p* ", ifelse(statcompute(2, diff, levels = c(0.05))$pvalue>0.001," = ", " < ")," ", ifelse(statcompute(2, diff, levels = c(0.05))$pvalue>0.001, round(statcompute(2, diff, levels = c(0.05))$pvalue, digits=3), "0.001")),
+                paste0("Jarque-Berra  | *p* ", ifelse(statcompute(7, diff, levels = c(0.05))$pvalue>0.001," = ", " < ")," ", ifelse(statcompute(7, diff, levels = c(0.05))$pvalue>0.001, round(statcompute(7, diff, levels = c(0.05))$pvalue, digits=3), "0.001")),
+                "  ",
+                "  ",
+                "In very large samples (when the test for normality has close to 100% power) tests for normality can result in significant results even when data is normally distributed, based on minor deviations from normality. In very small samples (e.g., n = 10), deviations from normality might not be detected, but this does not mean the data is normally distributed.  Always look at a plot of the data in addition to the test results."
+            )
         }
 
         html_out <- renderMarkdown(text = report)
@@ -425,30 +561,31 @@ shinyServer(function(input, output) {
 
 
     output$eqvar_text <- renderText({
-
-        # loading the data
-        data_user <- get_proc_data()        
-        data_proc <- data_user$data_proc
-        x <- data_user$x
-        y <- data_user$y
-        factorlabel <- input$factorlabel
-        measurelabel <- input$measurelabel
-        xlabel <- input$xlabel
-        ylabel <- input$ylabel
-        xlabelstring <- input$xlabelstring
-        ylabelstring <- input$ylabelstring
-
-
-        ### Testing equality of variances
-
-        pvalueLevene <- leveneTest(data_proc[[measurelabel]] ~ as.factor(data_proc[[factorlabel]]))$"Pr(>F)"[1:1]
-        if (pvalueLevene < 0.05) {
-            equalvar <- "the assumption that variances are equal is rejected (consider reporting robust statistics)."
-        } else if (pvalueLevene >= 0.05) {
-            equalvar<-"the assumption that variances are equal is not rejected."
-        }
         
         if (input$test_type == "independent") {
+
+            # loading the data
+            data_user <- get_proc_data()        
+            data_proc <- data_user$data_proc
+            x <- data_user$x
+            y <- data_user$y
+            factorlabel <- input$factorlabel
+            measurelabel <- input$measurelabel
+            xlabel <- input$xlabel
+            ylabel <- input$ylabel
+            xlabelstring <- input$xlabelstring
+            ylabelstring <- input$ylabelstring
+
+
+            ### Testing equality of variances
+
+            pvalueLevene <- leveneTest(data_proc[[measurelabel]] ~ as.factor(data_proc[[factorlabel]]))$"Pr(>F)"[1:1]
+            if (pvalueLevene < 0.05) {
+                equalvar <- "the assumption that variances are equal is rejected (consider reporting robust statistics)."
+            } else if (pvalueLevene >= 0.05) {
+                equalvar<-"the assumption that variances are equal is not rejected."
+            }
+
             report <- c(
                 "## Equal variances assumption",
 
@@ -459,7 +596,39 @@ shinyServer(function(input, output) {
                 paste0("The equality of variances assumption is typically examined with Levene's test, although as explained above, Welch's test is used below regardless of the outcome. Levene's test for equality of variances (*p* ", ifelse(pvalueLevene>0.001,' = ', ' < ')," ", ifelse(pvalueLevene>0.001,round(pvalueLevene, digits=3), '0.001'),") indicates that ", equalvar)
             )
         } else if (input$test_type == "dependent") {
-            report <- "not yet..."
+
+            # loading the data and user inputs
+            data_user <- get_proc_data()        
+            data_proc <- data_user$data_proc
+            data_proc_long <- data_proc$data_proc_long
+            x <- data_user$x
+            y <- data_user$y
+            factorlabel <- input$factorlabel
+            measurelabel <- input$measurelabel
+            xlabel <- input$xlabel
+            ylabel <- input$ylabel  
+            sd1<-sd(x) #standard deviation of group 1
+            sd2<-sd(y) #standard deviation of group 2
+
+            # Testing equality of variances
+            pvalueLevene <- leveneTest(data_proc_long[[measurelabel]] ~ as.factor((data_proc_long[[factorlabel]])))$"Pr(>F)"[1:1]
+            if (pvalueLevene < 0.05) {
+                equalvar <- "the assumption that variances are equal is rejected (consider reporting robust statistics)."
+            } else if (pvalueLevene >= 0.05) {
+                equalvar <- "the assumption that variances are equal is not rejected."
+            }
+            cat("Levene's test for equality of variances (p = ", round(pvalueLevene, digits=2),") indicates that ",equalvar,sep="")
+
+            # finally, sreating a report
+            report <- c(
+                "## Equal variances assumption",
+
+                paste0("In addition to the normality assumption, a second assumption of the *t*-test is that variances in both groups are equal. The variance is the standard deviation, squared, and the assumption is thus that the variance in the ", xlabel," condition (", round(sd1^2, digits = 2),") equals that in the ", ylabel," condition (", round(sd2^2, digits = 2),"). [Markowski & Markowski (1990)](http://www.jstor.org/stable/2684360) show that if sample sizes are equal, violations of the equal variance assumption do not lead to unsatisfactory performance (defined as actual significance levels falling outside a 0.03-0.07 boundary for a nominal alpha level of 0.05)."), 
+
+                "### Levene's test",
+
+                paste0("This equality of variances assumption is typically examined with Levene's test, although in small samples, Levene's test can have low power, and thus fail to reject the null-hypothesis that variances are equal, even when they are unequal. Levene's test for equality of variances (*p* ", ifelse(pvalueLevene>0.001,' = ', ' < ')," ", ifelse(pvalueLevene>0.001, round(pvalueLevene, digits=3), 0.001),") indicates that ", equalvar,".")
+            )
         }
 
         html_out <- renderMarkdown(text = report)
