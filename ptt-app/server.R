@@ -266,6 +266,7 @@ shinyServer(function(input, output) {
                 xlab(xlabelstring) + 
                 theme_bw(base_size=14) + 
                 theme(panel.grid.major.x = element_blank())
+             return(figure)
 
         } else if (input$test_type == "dependent") {
 
@@ -355,11 +356,9 @@ shinyServer(function(input, output) {
             figure <- gtable_add_grob(figure, gt3, 2, 2)
 
             # And render the plot
-            #grid.newpage()
-            #grid.draw(gt)
+            grid.newpage()
+            grid.draw(figure)
         } 
-
-        return(figure)
     })
 
 
@@ -445,8 +444,6 @@ shinyServer(function(input, output) {
             normalityrejections <- (statcompute(21, diff, levels = c(0.05))$decision + statcompute(6, diff, levels = c(0.05))$decision + statcompute(2, diff, levels = c(0.05))$decision + statcompute(7, diff, levels = c(0.05))$decision)
 
             report <- c(
-                "## Normality assumption",
-
                 paste0("The dependent *t*-test assumes that *difference* scores are normally distributed and that the variances of the two groups are equal. It does *not* assume the data within each measurement (so within the ", xlabel," and ", ylabel," condition) are normally distributed. If the normality assumption is violated, the Type 1 error rate of the test is no longer controlled, and can substantially increase beyond the chosen significance level. Formally, a normality test based on the data is incorrect, and the normality assumption should be tested on additional (e.g., pilot) data. Nevertheless, a two-step procedure (testing the data for normality, and using alternatives for the traditional *t*-test if normality is violated) works well (see [Rochon, Gondan, & Kieser, 2012](http://www.biomedcentral.com/1471-2288/12/81))."),
 
                 "### Tests for normality",
@@ -458,14 +455,18 @@ shinyServer(function(input, output) {
                 paste0("**The normality assumption was rejected in ", normalityrejections," out of 4 normality tests (Anderson-Darling, D'Agostino-Pearson, and Shapiro-Wilk).**"),
                 "  ",
                 paste0("Test Name  | *p*-value"), 
-                paste0("------------- | -------------"),
+                paste0("------------- | :-------------:"),
                 paste0("Shapiro-Wilk  | *p* ", ifelse(statcompute(21, diff, levels = c(0.05))$pvalue>=0.001," = ", " < ")," ", ifelse(statcompute(21, diff, levels = c(0.05))$pvalue>=0.001, round(statcompute(21, diff, levels = c(0.05))$pvalue, digits=3), "0.001")),
                 paste0("D'Agostino-Pearson  | *p* ", ifelse(statcompute(6, diff, levels = c(0.05))$pvalue>0.001," = ", " < ")," ", ifelse(statcompute(6, diff, levels = c(0.05))$pvalue>0.001, round(statcompute(6, diff, levels = c(0.05))$pvalue, digits=3), "0.001")),
                 paste0("Anderson-Darling  | *p* ", ifelse(statcompute(2, diff, levels = c(0.05))$pvalue>0.001," = ", " < ")," ", ifelse(statcompute(2, diff, levels = c(0.05))$pvalue>0.001, round(statcompute(2, diff, levels = c(0.05))$pvalue, digits=3), "0.001")),
                 paste0("Jarque-Berra  | *p* ", ifelse(statcompute(7, diff, levels = c(0.05))$pvalue>0.001," = ", " < ")," ", ifelse(statcompute(7, diff, levels = c(0.05))$pvalue>0.001, round(statcompute(7, diff, levels = c(0.05))$pvalue, digits=3), "0.001")),
-                "  ",
-                "  ",
-                "In very large samples (when the test for normality has close to 100% power) tests for normality can result in significant results even when data is normally distributed, based on minor deviations from normality. In very small samples (e.g., n = 10), deviations from normality might not be detected, but this does not mean the data is normally distributed.  Always look at a plot of the data in addition to the test results."
+                "   ",
+                "   ",
+                "In very large samples (when the test for normality has close to 100% power) tests for normality can result in significant results even when data is normally distributed, based on minor deviations from normality. In very small samples (e.g., n = 10), deviations from normality might not be detected, but this does not mean the data is normally distributed.  Always look at a plot of the data in addition to the test results.",
+
+                "### Histogram, kernel density plot (black line) and normal distribution (red line) of difference scores",
+
+                "The density (or proportion of the observations) is plotted on the y-axis. The grey bars are a histogram of the difference scores. Judging whether data is normally distributed on the basis of a histogram depends too much on the number of bins (or bars) in the graph. A kernel density plot (a non-parametric technique for density estimation) provides an easier way to check the normality of the data by comparing the shape of the density plot (the black line) with a normal distribution (the red dotted line, based on the observed mean and standard deviation). For dependent t-tests, the main DV is the *difference score*, and therefore the difference score should be normally distributed."
             )
         }
 
@@ -474,46 +475,111 @@ shinyServer(function(input, output) {
     })
 
     output$hist_plot <- renderPlot({
-    
-        ### loading the data
-        data_user <- get_proc_data()
-        x_data_proc <- data_user$x_data_proc
-        y_data_proc <- data_user$y_data_proc
-        x <- data_user$x
-        y <- data_user$y
-        factorlabel <- input$factorlabel
-        measurelabel <- input$measurelabel
-        xlabel <- input$xlabel
-        ylabel <- input$ylabel
-        xlabelstring <- input$xlabelstring
-        ylabelstring <- input$ylabelstring
         
+        if (input$test_type == "independent") {
         
-        ### density plot with normal distribution (red) and kernel desity plot
-        plot_x <- 
-            ggplot(x_data_proc, aes_string(x=measurelabel))  + 
-            geom_histogram(colour="black", fill="grey", aes(y = ..density..)) +
-            stat_function(fun = dnorm, args = c(mean=mean(x), sd=sd(x)), size = 1, color = "red", lty=2) +
-            geom_density(fill=NA, colour="black", size = 1) +
-            xlab(measurelabel)  + 
-            ggtitle(xlabel) + 
-            theme_bw(base_size=14) + 
-            theme(panel.grid.major.x = element_blank(), 
-                panel.grid.minor.x = element_blank())
+            ### loading the data
+            data_user <- get_proc_data()
+            x_data_proc <- data_user$x_data_proc
+            y_data_proc <- data_user$y_data_proc
+            x <- data_user$x
+            y <- data_user$y
+            factorlabel <- input$factorlabel
+            measurelabel <- input$measurelabel
+            xlabel <- input$xlabel
+            ylabel <- input$ylabel
+            xlabelstring <- input$xlabelstring
+            ylabelstring <- input$ylabelstring
+            
+            
+            ### density plot with normal distribution (red) and kernel desity plot
+            plot_x <- 
+                ggplot(x_data_proc, aes_string(x=measurelabel))  + 
+                geom_histogram(colour="black", fill="grey", aes(y = ..density..)) +
+                stat_function(fun = dnorm, args = c(mean=mean(x), sd=sd(x)), size = 1, color = "red", lty=2) +
+                geom_density(fill=NA, colour="black", size = 1) +
+                xlab(measurelabel)  + 
+                ggtitle(xlabel) + 
+                theme_bw(base_size=14) + 
+                theme(panel.grid.major.x = element_blank(), 
+                    panel.grid.minor.x = element_blank())
 
-        plot_y <- ggplot(y_data_proc, aes_string(x=measurelabel))  + 
-              geom_histogram(colour="black", fill="grey", aes(y = ..density..)) +
-              stat_function(fun = dnorm, args = c(mean=mean(y), sd=sd(y)), size = 1, color = "red", lty=2) +
+            plot_y <- ggplot(y_data_proc, aes_string(x=measurelabel))  + 
+                  geom_histogram(colour="black", fill="grey", aes(y = ..density..)) +
+                  stat_function(fun = dnorm, args = c(mean=mean(y), sd=sd(y)), size = 1, color = "red", lty=2) +
+                  geom_density(fill=NA, colour="black", size = 1) +
+                  xlab(measurelabel)  + 
+                  ggtitle(ylabel) + 
+                  theme_bw(base_size=14) + 
+                  theme(panel.grid.major.x = element_blank(), 
+                        panel.grid.minor.x = element_blank())
+
+            figure <- grid.arrange(plot_x, plot_y, ncol=2)
+            
+            return(figure)
+
+        } else if (input$test_type == "dependent") {
+
+            # loading the data and user inputs
+            data_user <- get_proc_data()        
+            data_proc <- data_user$data_proc
+            diff <- data_proc[["diff"]]
+            x <- data_user$x
+            y <- data_user$y
+            factorlabel <- input$factorlabel
+            measurelabel <- input$measurelabel
+            xlabel <- input$xlabel
+            ylabel <- input$ylabel
+            xlabelstring <- input$xlabelstring
+            ylabelstring <- input$ylabelstring
+            alpha <- input$alpha
+            H1 <- input$alt_hyp
+            ConfInt <- input$conf_int
+
+
+            #density plot with normal distribution (red) and kernel desity plot
+            plot1 <- ggplot(data_proc, aes(x=diff))  + 
+              geom_histogram(colour="black", fill="grey", 
+                             aes(y = ..density..)) +
+              stat_function(fun = dnorm, args = c(mean=mean(data_proc$diff), 
+                            sd=sd(data_proc$diff)), size = 1, color = "red", 
+                            lty=2) +
               geom_density(fill=NA, colour="black", size = 1) +
-              xlab(measurelabel)  + 
+              xlab(ylabelstring) + 
+              ggtitle("Difference scores") + 
+              theme_bw(base_size=14) + 
+              theme(panel.grid.major.x = element_blank(), 
+                    panel.grid.minor.x = element_blank())
+
+
+            #density plot with normal distribution (red) and kernel desity plot
+            plot2 <- ggplot(data_proc, aes_string(x=xlabel))  + 
+              geom_histogram(colour="black", fill="grey", 
+                             aes(y = ..density..)) +
+              stat_function(fun = dnorm, args = c(mean=mean(x), sd=sd(x)), 
+                            size = 1, color = "red", lty=2) +
+              geom_density(fill=NA, colour="black", size = 1) +
+              xlab(ylabelstring)  + 
+              ggtitle(xlabel) + 
+              theme_bw(base_size=14) + 
+              theme(panel.grid.major.x = element_blank(), 
+                    panel.grid.minor.x = element_blank())
+
+            #density plot with normal distribution (red) and kernel desity plot
+            plot3 <- ggplot(data_proc, aes_string(x=ylabel))  + 
+              geom_histogram(colour="black", fill="grey", 
+                             aes(y = ..density..)) +
+              stat_function(fun = dnorm, args = c(mean=mean(y), sd=sd(y)), 
+                            size = 1, color = "red", lty=2) +
+              geom_density(fill=NA, colour="black", size = 1) +
+              xlab(ylabelstring) + 
               ggtitle(ylabel) + 
               theme_bw(base_size=14) + 
               theme(panel.grid.major.x = element_blank(), 
                     panel.grid.minor.x = element_blank())
 
-        figure <- grid.arrange(plot_x, plot_y, ncol=2)
-        
-        return(figure)
+            return(grid.arrange(plot1, plot2, plot3, ncol=3))
+        }
     })
 
     
@@ -528,7 +594,9 @@ shinyServer(function(input, output) {
                 paste0("In the Q-Q plots for the ", xlabel, " and ", ylabel, " conditions the points should fall on the line. Deviations from the line in the upper and lower quartiles indicates the tails of the distributions are thicker or thinner than in the normal distribution. An S-shaped curve with a dip in the middle indicates data is left-skewed (more values to the right of the distribution), while a bump in the middle indicates data is right-skewed (more values to the left of the distribution). For interpretation examples, see [here](http://emp.byui.edu/BrownD/Stats-intro/dscrptv/graphs/qq-plot_egs.htm).")
             )
         } else if (input$test_type == "dependent") {
-            report <- "not yet..."
+            report <- c(
+                "In the Q-Q plot for the difference scores the points should fall on the line. Deviations from the line in the upper and lower quartiles indicates the tails of the distributions are thicker or thinner than in the normal distribution. An S-shaped curve with a dip in the middle indicates data is left-skewed (more values to the right of the distribution), while a bump in the middle indicates data is right-skewed (more values to the left of the distribution). For interpretation examples, see [here](http://emp.byui.edu/BrownD/Stats-intro/dscrptv/graphs/qq-plot_egs.htm)."
+            )
         }
 
         html_out <- renderMarkdown(text = report)
@@ -537,35 +605,73 @@ shinyServer(function(input, output) {
 
 
     output$qq_plot <- renderPlot({
-    
-        # loading the data
-        data_user <- get_proc_data()
-        x <- data_user$x
-        y <- data_user$y
-        factorlabel <- input$factorlabel
-        measurelabel <- input$measurelabel
-        xlabel <- input$xlabel
-        ylabel <- input$ylabel
-        xlabelstring <- input$xlabelstring
-        ylabelstring <- input$ylabelstring
-
         
-        ### Q-Q plot
-        qq_x <- ggplot_qqnorm(x, line = "quantile") + 
-            ggtitle(xlabel) + 
-            theme_bw(base_size=14) + 
-            theme(panel.grid.major = element_blank(),
-                  panel.grid.minor = element_blank())
+        if (input$test_type == "independent") {
 
-        qq_y <- ggplot_qqnorm(y, line = "quantile") + 
-            ggtitle(ylabel) + 
-            theme_bw(base_size=14) + 
-            theme(panel.grid.major = element_blank(),
-                  panel.grid.minor = element_blank())
-        
-        figure <- grid.arrange(qq_x, qq_y, ncol=2)
+            # loading the data
+            data_user <- get_proc_data()
+            x <- data_user$x
+            y <- data_user$y
+            factorlabel <- input$factorlabel
+            measurelabel <- input$measurelabel
+            xlabel <- input$xlabel
+            ylabel <- input$ylabel
+            xlabelstring <- input$xlabelstring
+            ylabelstring <- input$ylabelstring
 
-        return(figure)
+            
+            ### Q-Q plot
+            qq_x <- ggplot_qqnorm(x, line = "quantile") + 
+                ggtitle(xlabel) + 
+                theme_bw(base_size=14) + 
+                theme(panel.grid.major = element_blank(),
+                      panel.grid.minor = element_blank())
+
+            qq_y <- ggplot_qqnorm(y, line = "quantile") + 
+                ggtitle(ylabel) + 
+                theme_bw(base_size=14) + 
+                theme(panel.grid.major = element_blank(),
+                      panel.grid.minor = element_blank())
+            
+            figure <- grid.arrange(qq_x, qq_y, ncol=2)
+
+            return(figure)
+
+        } else if (input$test_type == "dependent") {
+
+            # loading the data and user inputs
+            data_user <- get_proc_data()        
+            data_proc <- data_user$data_proc
+            diff <- data_proc[["diff"]]
+            x <- data_user$x
+            y <- data_user$y
+            xlabel <- input$xlabel
+            ylabel <- input$ylabel
+            
+
+            #Q-Q plot
+            qq1 <- ggplot_qqnorm(diff, line = "quantile") + 
+                ggtitle("Difference scores") + 
+                theme_bw(base_size=14)  + 
+                theme(panel.grid.major = element_blank(),
+                      panel.grid.minor = element_blank())
+
+            qq2 <- ggplot_qqnorm(x, line = "quantile") + 
+                ggtitle(xlabel) + 
+                theme_bw(base_size=14)  + 
+                theme(panel.grid.major = element_blank(),
+                      panel.grid.minor = element_blank())
+            
+            qq3 <- ggplot_qqnorm(y, line = "quantile") + 
+                ggtitle(ylabel) + 
+                theme_bw(base_size=14)  + 
+                theme(panel.grid.major = element_blank(),
+                      panel.grid.minor = element_blank())
+
+            figure <- grid.arrange(qq1, qq2, qq3, ncol=3)
+
+            return(figure)
+        }
     })
 
 
@@ -608,8 +714,7 @@ shinyServer(function(input, output) {
 
             # loading the data and user inputs
             data_user <- get_proc_data()        
-            data_proc <- data_user$data_proc
-            data_proc_long <- data_proc$data_proc_long
+            data_proc_long <- data_user$data_proc_long
             x <- data_user$x
             y <- data_user$y
             factorlabel <- input$factorlabel
@@ -636,7 +741,7 @@ shinyServer(function(input, output) {
 
                 "### Levene's test",
 
-                paste0("This equality of variances assumption is typically examined with Levene's test, although in small samples, Levene's test can have low power, and thus fail to reject the null-hypothesis that variances are equal, even when they are unequal. Levene's test for equality of variances (*p* ", ifelse(pvalueLevene>0.001,' = ', ' < ')," ", ifelse(pvalueLevene>0.001, round(pvalueLevene, digits=3), 0.001),") indicates that ", equalvar,".")
+                paste0("This equality of variances assumption is typically examined with Levene's test, although in small samples, Levene's test can have low power, and thus fail to reject the null-hypothesis that variances are equal, even when they are unequal. Levene's test for equality of variances (*p* ", ifelse(pvalueLevene>0.001,' = ', ' < ')," ", ifelse(pvalueLevene>0.001, round(pvalueLevene, digits=3), 0.001),") indicates that ", equalvar)
             )
         }
 
