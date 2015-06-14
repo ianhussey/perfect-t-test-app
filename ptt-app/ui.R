@@ -134,21 +134,20 @@ shinyUI(
                 column(4,
                     wellPanel(
 
-                        br(),
                         numericInput("alpha", 
                             label = h5("Significance level, alpha:"), 
                             value = 0.05),
-                        br(),  
+                        
                         sliderInput("conf_int", label = h5("Select confidence interval level:"), min = 0, max = 1, value = 0.95, step = 0.01),
-                        br(), 
+
                         radioButtons('alt_hyp', label = h5("Select alternative hypothesis:"),
                             c("Two sided"="two.sided", "Less"="less", "Greater"="greater"),
                             "two.sided"),
-                        br(),  
+
                         checkboxInput("InAHurry", label = h5("Are you in a hurry?"), TRUE),
-                        br(),  
+
                         sliderInput("bootstraps", label = h5("Number of bootstrap replications:"), min = 0, max = 100000, value = 2000, step = 1), 
-                        br(),   
+
                         numericInput("BFrscale", 
                             label = h5("Specify expected effect:"), 
                             value = 0.5),                      
