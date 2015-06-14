@@ -8,6 +8,15 @@ shinyUI(
     tabPanel("Instructions & Data", 
         fluidPage(
 
+            # styling the validation errors
+            tags$head(
+                tags$style(HTML("
+                    .shiny-output-error-validation {
+                        color: green;
+                    }
+                "))
+            ),
+
             # row with explanations of the figure
             fluidRow(
                 column(12, includeMarkdown("instructions_initial.md") )
