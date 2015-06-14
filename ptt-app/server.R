@@ -4,7 +4,6 @@ library(shiny)
 library(ggplot2)
 library(gtable)
 library(gridExtra)
-library(gridExtra)
 library(markdown)
 library(reshape2)
 
@@ -25,8 +24,11 @@ options(scipen=6) #disable scientific notation for numbers smaller than x (i.e.,
 shinyServer(function(input, output) {
 
     
-    # original data file loaded by the user
-    get_data <- reactive({
+    # ----
+    # Validating inputs
+    # ----
+    
+    validate_data_input <- reactive({
        
         # input$data_file will be NULL initially. After the user selects
         # and uploads a file, it will be a data frame with 'name',
@@ -35,13 +37,25 @@ shinyServer(function(input, output) {
         # be found.
         
         # we validate if the data file is present, if not the text is displayed instead of ugly red error messages
-        user_file <- input$data_file
         validate(
-            need(user_file != NULL, "Please upload a data set!")
+            need(!is.null(input$data_file), "Please upload a data set!")
         )
         
+    })
+
+
+    # ----
+    # Loading and preprocessing the data
+    # ----
+    
+    # original data file loaded by the user
+    get_data <- reactive({
+       
+        # we call validated data input 
+        validate_data_input()
+                
         # reading in the data
-        data_original <- read.table(user_file$datapath, header=TRUE, sep=input$sep, quote=input$quote, dec=input$dec, stringsAsFactors=FALSE)
+        data_original <- read.table(input$data_file$datapath, header=TRUE, sep=input$sep, quote=input$quote, dec=input$dec, stringsAsFactors=FALSE)
         return(data_original)
     })
     
@@ -136,38 +150,33 @@ shinyServer(function(input, output) {
 
     output$variables <- renderUI({
 
-        # set action if nothing is uploaded yet
-        user_file <- input$data_file
-        if (is.null(user_file)) {
-            return()
-        } else {
-            if (input$test_type == "independent") {
-                list(
-                    textInput("factorlabel", "What variable determines the groups?", "Group variable"),
-                    
-                    textInput("measurelabel", "What variable is the dependent measure?", "Dependent variable"),
-                    
-                    textInput("xlabel", "What will be your group 1?", value = "Group 1"),
-                    
-                    textInput("ylabel", "What will be your group 2?", value = "Group 2")
-                )
-            } else if (input$test_type == "dependent") {
-                list(
-                    textInput("subject", "What is the name of individual subject identifier variable? e.g. the participant number", "Subject variable"),
-                    
-                    textInput("factorlabel", "Define the name of the factor that describes the difference between x and y (e.g., condition, time)", "Group variable"),
-                    
-                    textInput("measurelabel", "Define name of the measure that describes the values of x and y (e.g., reaction times, self-reported happiness)", "Dependent variable"),
-                    
-                    textInput("subgrouplabel", "Specify header of the addition column specifying the subgroups (e.g., \"Year\"). To analyze all data, leave empty", ""),
-                    
-                    textInput("subgrouptokeep", "Specify the identifier of the group you want to analyze (e.g., \"2013\")", ""),
-                    
-                    textInput("xlabel", "What will be your group 1?", value = "Group 1"),
-                    
-                    textInput("ylabel", "What will be your group 2?", value = "Group 2")
-                )
-            }
+        
+        if (input$test_type == "independent") {
+            list(
+                textInput("factorlabel", "What variable determines the groups?", "Group variable"),
+                
+                textInput("measurelabel", "What variable is the dependent measure?", "Dependent variable"),
+                
+                textInput("xlabel", "What will be your group 1?", value = "Group 1"),
+                
+                textInput("ylabel", "What will be your group 2?", value = "Group 2")
+            )
+        } else if (input$test_type == "dependent") {
+            list(
+                textInput("subject", "What is the name of individual subject identifier variable? e.g. the participant number", "Subject variable"),
+                
+                textInput("factorlabel", "Define the name of the factor that describes the difference between x and y (e.g., condition, time)", "Group variable"),
+                
+                textInput("measurelabel", "Define name of the measure that describes the values of x and y (e.g., reaction times, self-reported happiness)", "Dependent variable"),
+                
+                textInput("subgrouplabel", "Specify header of the addition column specifying the subgroups (e.g., \"Year\"). To analyze all data, leave empty", ""),
+                
+                textInput("subgrouptokeep", "Specify the identifier of the group you want to analyze (e.g., \"2013\")", ""),
+                
+                textInput("xlabel", "What will be your group 1?", value = "Group 1"),
+                
+                textInput("ylabel", "What will be your group 2?", value = "Group 2")
+            )
         }
     })
     
