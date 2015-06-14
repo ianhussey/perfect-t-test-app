@@ -63,4 +63,6 @@ Wilcox, R. R. (2012). *Introduction to robust estimation and hypothesis testing*
 
 Wilcox, R. R., & Schönbrodt, F. D. (2015). *The WRS package for robust statistics in R (version 0.27.5)*. URL: https://github.com/nicebread/WRS.
 
+Wilcox, R. R., & Tian, T. S. (2011). Measuring effect size: a robust heteroscedastic approach for two or more groups. *Journal of Applied Statistics*, *38*, 1359-1368.
+
 Yap, B. W., & Sim, C. H. (2011). Comparisons of various types of normality tests. *Journal of Statistical Computation and Simulation*, *81*, 2141-2155.
