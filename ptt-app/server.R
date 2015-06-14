@@ -25,27 +25,27 @@ options(scipen=6) #disable scientific notation for numbers smaller than x (i.e.,
 shinyServer(function(input, output) {
 
     
-    # data file loaded by the user
+    # original data file loaded by the user
     get_data <- reactive({
-
-        ### ORIGINAL DATA
-        
+       
         # input$data_file will be NULL initially. After the user selects
         # and uploads a file, it will be a data frame with 'name',
         # 'size', 'type', and 'datapath' columns. The 'datapath'
         # column will contain the local filenames where the data can
         # be found.
-
+        
+        # we validate if the data file is present, if not the text is displayed instead of ugly red error messages
         user_file <- input$data_file
-
-        if (is.null(user_file)) return(NULL)
+        validate(
+            need(user_file != NULL, "Please upload a data set!")
+        )
         
         # reading in the data
         data_original <- read.table(user_file$datapath, header=TRUE, sep=input$sep, quote=input$quote, dec=input$dec, stringsAsFactors=FALSE)
         return(data_original)
     })
     
-    # doing some processing
+    # data file after we have done some processing, this one will be actually used in computations
     get_proc_data <- reactive( {      
 
         ### ORIGINAL DATA 
