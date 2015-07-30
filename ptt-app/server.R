@@ -19,6 +19,9 @@ library(HLMdiag)
 
 options(scipen=6) #disable scientific notation for numbers smaller than x (i.e., 10) digits (e.g., 4.312e+22)
 
+example_independent <- read.table("data/demo_independent.txt", stringsAsFactors=FALSE, header=TRUE, sep="\t")
+example_dependent <- read.table("data/demo_dependent.txt", stringsAsFactors=FALSE, header=TRUE, sep="\t")
+
 
 # Define server logic 
 shinyServer(function(input, output) {
@@ -43,6 +46,14 @@ shinyServer(function(input, output) {
         
     })
 
+    validate_variables_input <- reactive({
+       
+        # we validate if the variables are set, if not the text is displayed instead of ugly red error messages
+        validate(
+            need(!is.null(input$subgrouplabel), "Please set the variables!")
+        )
+        
+    })
 
     # ----
     # Loading and preprocessing the data
@@ -83,7 +94,7 @@ shinyServer(function(input, output) {
                 ### PROCESSING THE DATA   
                 
                 data_proc <- na.omit(data_original)
-                if (subgrouplabel != ""){
+                if (subgrouplabel != " "){
                     data_proc <- subset(data_proc, data_proc[[subgrouplabel]]==subgrouptokeep)
                 }
 
@@ -141,102 +152,146 @@ shinyServer(function(input, output) {
     # Data tab
     # ----
     
+    # output$data_example <- renderTable({
+        
+    #     # fetch the example data file and return it to the user
+    #     if (input$test_type == "independent") {
+    #         return(head(example_independent, 30))
+    #     } else if (input$test_type == "dependent") {
+    #         return(head(example_dependent, 30))
+    #     }
+    # })
+
     output$data_table <- renderTable({
         
         # fetch the original data file and return it to the user
         data_user <- get_data()
-        return(head(data_user, 30))
+        return(head(data_user, 60))
     })
 
     output$variables <- renderUI({
 
+        # get the variables available in the data set
+        data_user <- get_data()
+        variables <- colnames(data_user)
         
         if (input$test_type == "independent") {
             list(
-                textInput("factorlabel", "What variable determines the groups?", "Group variable"),
-                
-                textInput("measurelabel", "What variable is the dependent measure?", "Dependent variable"),
-                
-                textInput("xlabel", "What will be your group 1?", value = "Group 1"),
-                
-                textInput("ylabel", "What will be your group 2?", value = "Group 2")
+                selectInput("factorlabel", 
+                            label = "Select the variable that determines to which group the observation belongs", 
+                            choices = variables,
+                            selected = variables[1]),
+
+                selectInput("measurelabel", 
+                            label = "Select the variable with the dependent measure", 
+                            choices = variables,
+                            selected = variables[2])
             )
         } else if (input$test_type == "dependent") {
             list(
-                textInput("subject", "What is the name of individual subject identifier variable? e.g. the participant number", "Subject variable"),
+                selectInput("subject", 
+                    "Select the variable that determines the subject identifier", 
+                    choices = variables, 
+                    selected = variables[1]),
+
+                selectInput("xlabel", 
+                    "Select the variable that determines the first group", 
+                    choices = variables, 
+                    selected = variables[2]),
                 
-                textInput("factorlabel", "Define the name of the factor that describes the difference between x and y (e.g., condition, time)", "Group variable"),
+                selectInput("ylabel", 
+                    "Select the variable that determines the second group",  
+                    choices = variables, 
+                    selected = variables[3]),
                 
-                textInput("measurelabel", "Define name of the measure that describes the values of x and y (e.g., reaction times, self-reported happiness)", "Dependent variable"),
-                
-                textInput("subgrouplabel", "Specify header of the addition column specifying the subgroups (e.g., \"Year\"). To analyze all data, leave empty", ""),
-                
-                textInput("subgrouptokeep", "Specify the identifier of the group you want to analyze (e.g., \"2013\")", ""),
-                
-                textInput("xlabel", "What will be your group 1?", value = "Group 1"),
-                
-                textInput("ylabel", "What will be your group 2?", value = "Group 2")
+                selectInput("subgrouplabel", 
+                    "Optionally, you can specify a variable that determines  subgroups of the data. To analyze all data, leave empty", 
+                    choices = c(" ", variables), 
+                    selected = " ")
             )
         }
     })
     
+    
 
+    output$groups <- renderUI({
 
-    # output$variables <- renderUI({
+        # validating that variables are set
+        validate_variables_input()
 
-    #     # set action if nothing is uploaded yet
-    #     user_file <- input$data_file
-    #     if (is.null(user_file))
-    #         return()
-
-    #      # reading in the data
-    #     data_original <- get_data()
-
-    #     var_list <- colnames(data_original)
-    #     if (length(var_list) == 1) {
-    #         return("File not read correctly. Your file has to have a row with a header and the deliminator has to be specified correctly.")
-    #     } else {
-    #         list(
-    #             selectInput("factorlabel", "What variable determines the groups?", choices = var_list, selected = var_list[1]),
-    #             selectInput("measurelabel", "What variable is the dependent measure?", choices = var_list, selected = var_list[2])
-    #         )
-    #     }     
-    # })
-
-
-    # output$groups <- renderUI({
-
-    #     # set action if factorlabel not set yet
-    #     if (is.null(input$factorlabel))
-    #         return()
-
-    #      # reading in the data
-    #     data_user <- get_data()
-    #     print(data_user)
-
-    #     group_list <- unique(data_user[ ,input$factorlabel])
-    #     print(group_list)
+        # reading in the data 
+        data_user <- get_data()
         
-    #     # return
-    #     list(
-    #         selectInput("xlabel", "What will be your group 1?", choices = group_list, selected = group_list[1]),
-    #         selectInput("xlabel", "What will be your group 2?", choices = group_list, selected = group_list[2])
-    #     )    
-    # })
+        # return
+        if (input$test_type == "independent") {
+
+            # getting the groupings
+            group_list <- unique(data_user[ ,input$factorlabel])
+
+            list(
+                selectInput("xlabel", 
+                    "Select the label that will determine the first group", 
+                    choices = group_list, 
+                    selected = group_list[1]),
+                
+                selectInput("ylabel", 
+                    "Select the label that will determine the second group",  
+                    choices = group_list, 
+                    selected = group_list[2])
+                )
+
+        } else if (input$test_type == "dependent") {  
+            
+            # check the input for the subgroup variable
+            if (input$subgrouplabel == " ") {
+                group_list <- " "
+            } else {
+                group_list <- unique(data_user[ ,input$subgrouplabel])
+            }
+            
+            list(
+                textInput("factorlabel", 
+                    "Define the name of the factor that describes the difference between group 1 and group 2", 
+                    "Groups"),
+                
+                textInput("measurelabel", 
+                    "Define the name of the measure that describes the values of group 1 and group 2", 
+                    "Measure"),
+
+                selectInput("subgrouptokeep", 
+                    "Optionally, if you have specified the subgroup variable in the previous step, you can specify the identifier of the group you want to analyze", 
+                    choices = group_list, 
+                    selected = group_list[1])
+                )
+        }
+    })
 
 
-    # output$labels <- renderUI({
+    output$labels <- renderUI({
 
-    #     # set action if factorlabel not set yet
-    #     if (is.null(input$factorlabel))
-    #         return()
-        
-    #     # return
-    #     list(
-    #         textInput("xlabelstring", "Define the name of the variable displayed on x axis", value = input$factorlabel),
-    #         textInput("ylabelstring", "Define the name of the variable displayed on y axis", value = input$measurelabel)
-    #     )    
-    # })
+        # return
+        if (input$test_type == "independent") {
+            list(
+                textInput("xlabelstring", 
+                    "Set the label for the group variable that will be displayed on x axis", 
+                    value = "x axis label"),
+                textInput("ylabelstring", 
+                    "Set the label for the measure variable that will be displayed on y axis",
+                    value = "y axis label")
+                )
+            
+        } else if (input$test_type == "dependent") {    
+            list(
+                
+                textInput("xlabelstring", 
+                    "Set the label for the group variable that will be displayed on x axis", 
+                    value = "x axis label"),
+                textInput("ylabelstring", 
+                    "Set the label for the measure variable that will be displayed on y axis",
+                    value = "y axis label")
+                )
+        }
+    })
 
 
     # ----

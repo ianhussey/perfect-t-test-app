@@ -5,7 +5,7 @@ shinyUI(
     navbarPage("Perfect t-test",
 
     # first tab that opens is About tab
-    tabPanel("Instructions & Data", 
+    tabPanel("About", 
         fluidPage(
 
             # styling the validation errors
@@ -20,17 +20,32 @@ shinyUI(
             # row with explanations of the figure
             fluidRow(
                 column(12, includeMarkdown("instructions_initial.md") )
+            )  # END of row
+        )
+    ),        
+    
+    tabPanel("Your data", 
+        fluidPage(  
+
+            # row with explanations of the figure
+            fluidRow(
+                column(12, includeMarkdown("instructions_data.md") )
             ),  # END of row
 
-            br(),
-            
-            #h1("Your data"),
-            
             fluidRow(
-                column(6, 
+                column(4, 
+
                     wellPanel(
-                        fileInput('data_file', 
-                                  h4('Step 1: Upload the file'),
+                        h4("Step 1: What type of test do you wish to do?"),
+                        radioButtons('test_type', "",
+                                     c(Independent = 'independent', 
+                                       Dependent = 'dependent'),
+                                     'independent')
+                    ),
+
+                    wellPanel(
+                        h4('Step 2: Upload the file'),
+                        fileInput('data_file', "",
                                   accept=c('text/csv', 
                                     'text/comma-separated-values,text/plain', 
                                     '.csv')),
@@ -43,36 +58,51 @@ shinyUI(
                             c(None='', 'Double Quote'='"', 'Single Quote'="'"),
                             '"')
                     ),
-                    wellPanel(
-                        h4("Step2: What type of test do you wish to do?"),
-                        radioButtons('test_type', "",
-                                     c(Independent = 'independent', 
-                                       Dependent = 'dependent'),
-                                     'independent')
-                    ),
+                    br(),
+                    
+                    # button for updating the Step 3 part
+                    tags$p("After you have completed Step 1 and 2 please click the button before proceeding with the following step."), 
+                    submitButton("Data is uploaded!"),
+                    br(),
+                    br(),
+                    
+                    # Step 3. part is updated according to the uploaded data and type of the test
                     wellPanel(
                         h4("Step 3: Set the variables"),
-                        # textInput("factorlabel", "What variable determines the groups?", "Group variable"),
-                        # textInput("measurelabel", "What variable is the dependent measure?", "Dependent variable"),
-                        # textInput("xlabel", "What will be your group 1?", value = "Group 1"),
-                        # textInput("ylabel", "What will be your group 2?", value = "Group 2")
                         uiOutput("variables")
-                        #uiOutput("groups")
                     ),
+
+                    # button for updating the Step 3 part
+                    tags$p("After you have set the variables please click the button before proceeding with the following step."), 
+                    submitButton("Variables are set!"),
+                    br(),
+                    br(),
+
+                    # Step 4. part is updated according the variables set in step 3
                     wellPanel(
-                        h4("Step 4: Set the labels for figures"),
-                        textInput("xlabelstring", "Define the name of the variable displayed on x axis", value = "x axis label"),
-                        textInput("ylabelstring", "Define the name of the variable displayed on y axis", value = "y axis label")
-                        #uiOutput("labels")
+                        h4("Step 4: Set the groups"),
+                        uiOutput("groups")
                     ),
-                    # submit button
-                    submitButton("Data is ready!"),
+
+                    wellPanel(
+                        h4("Step 5: Set the labels for figures"),
+                        uiOutput("labels")
+                    ),
+
+                    # submit button after all is done
+                    submitButton("Groups and labels ready!"),
                     br(),
                     br()
                 ),
-                column(2),
+
+                # example of how the data should look like
+                # column(4,
+                #     h4("Example of how your data should look like"),
+                #     tableOutput(outputId = "data_example")
+                # ),
+
                 # Show the output
-                column(4,
+                column(8,
                     h4("First 30 rows of your data"),
                     tableOutput(outputId = "data_table")
                 ) 
