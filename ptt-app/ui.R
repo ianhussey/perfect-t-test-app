@@ -145,8 +145,8 @@ shinyUI(
         )
     ),  # END of tab
 
-    # 3rd tab is utility and cost interactive figure
-    tabPanel("Frequentist tests",
+    # 3rd tab is the one with all the tests
+    tabPanel("Tests",
 
         fluidPage(
             # rendering equations anywhere in static text
@@ -164,128 +164,44 @@ shinyUI(
                 column(4,
                     wellPanel(
 
-                        br(),
                         numericInput("alpha", 
                             label = h5("Significance level, alpha:"), 
                             value = 0.05),
-                        br(),  
-                        sliderInput("conf_int", label = h5("Select confidence interval level:"), min = 0, max = 1, value = 0.95, step = 0.01),
-                        br(), 
-                        radioButtons('alt_hyp', label = h5("Select alternative hypothesis:"),
-                            c("Two sided"="two.sided", "Less"="less", "Greater"="greater"),
-                            "two.sided"),                         
-                                                
-                        # submit button
-                        submitButton("Update report!")
-                    )
-                ),
-
-                # Show a report
-                column(8,
-                    htmlOutput(outputId = "ttestOut")
-                )
-            )  # END of row
-        )
-    ),  # END of tab
-
-    
-    # 4th tab with robust stats
-    tabPanel("Robust tests",
-        fluidPage(
-            withMathJax(),
-            # row with explanations of the figure
-            fluidRow(
-                column(10, includeMarkdown("instructions_robust.md") ),
-                column(2)
-            ),  # END of row
-
-            br(),
-
-            # user input
-            fluidRow(
-                column(4, 
-                    wellPanel(
                         
-                        br(),
-                        numericInput("alpha", 
-                            label = h5("Significance level, alpha:"), 
-                            value = 0.05),
-                        br(),  
                         sliderInput("conf_int", label = h5("Select confidence interval level:"), min = 0, max = 1, value = 0.95, step = 0.01),
-                        br(), 
+
                         radioButtons('alt_hyp', label = h5("Select alternative hypothesis:"),
                             c("Two sided"="two.sided", "Less"="less", "Greater"="greater"),
-                            "two.sided"), 
-                        br(),  
+                            "two.sided"),
+
                         checkboxInput("InAHurry", label = h5("Are you in a hurry?"), TRUE),
-                        br(),  
-                        sliderInput("bootstraps", label = h5("Number of bootstrap replications:"), min = 0, max = 100000, value = 2000, step = 1),
-                                                
-                        # submit button
-                        submitButton("Update report!")
-                    )
-                ),
-                
-                # Show a report
-                column(8,
-                    htmlOutput(outputId = "robustOut")
-                )
-            )  # END of row
-        )
-    ),  # END of tab
 
+                        sliderInput("bootstraps", label = h5("Number of bootstrap replications:"), min = 0, max = 100000, value = 2000, step = 1), 
 
-    # 5th tab with bayes tests
-    tabPanel("Bayesian tests",
-        fluidPage(
-            withMathJax(),
-            helpText('An irrational number \\(\\sqrt{2}\\)
-           and a fraction $$1-\\frac{1}{2}$$'),
-            # TO DO 
-            # 1) we'll need some waiting indicator, or computation in progress
-            # 2) in a hurry TRUE by default
-            
-            # row with explanations of the figure
-            fluidRow(
-                column(10, includeMarkdown("instructions_bayes.md") ),
-                column(2)
-            ),  # END of row
-
-            br(),
-
-            # user input
-            fluidRow(
-                column(4, 
-                    wellPanel(
-                        
-                        br(), 
-                        radioButtons('alt_hyp', label = h5("Select alternative hypothesis:"),
-                            c("Two sided"="two.sided", "Less"="less", "Greater"="greater"),
-                            "two.sided"), 
-                        br(),  
-                        sliderInput("conf_int", label = h5("Select confidence interval level:"), min = 0, max = 1, value = 0.95, step = 0.01),
-                        br(),
                         numericInput("BFrscale", 
                             label = h5("Specify expected effect:"), 
-                            value = 0.5),
-                        br(),  
-                        checkboxInput("InAHurry", label = h5("Are you in a hurry?"), TRUE),
+                            value = 0.5),                      
                                                 
                         # submit button
                         submitButton("Update report!")
                     )
                 ),
-                
+
                 # Show a report
                 column(8,
-                    htmlOutput(outputId = "bayesOut")
+                    tabsetPanel(type = "tabs", 
+                        tabPanel("Instructions", includeMarkdown("instructions_freq.md")),
+                        tabPanel("Classic", htmlOutput("ttestOut")), 
+                        tabPanel("Robust", htmlOutput("robustOut")), 
+                        tabPanel("Bayes",  htmlOutput("bayesOut"))
+                    )
                 )
             )  # END of row
         )
     ),  # END of tab
 
 
-    # 6th tab, references used in the text
+    # 4th tab, references used in the text
     tabPanel("References", includeMarkdown("references.md") 
             
     )  # END of tab
