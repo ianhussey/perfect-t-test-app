@@ -29,11 +29,11 @@ shinyUI(
 
             # row with explanations of the figure
             fluidRow(
-                column(12, includeMarkdown("instructions_data.md") )
+                column(12, includeMarkdown("instructions_data.md"),br() )
             ),  # END of row
 
             fluidRow(
-                column(4, 
+                column(5, 
 
                     wellPanel(
                         h4("Step 1: What type of test do you wish to do?"),
@@ -71,6 +71,7 @@ shinyUI(
                         h4("Step 3: Set the variables"),
                         uiOutput("variables")
                     ),
+                    br(),
 
                     # button for updating the Step 3 part
                     tags$p("After you have set the variables please click the button before proceeding with the following step."), 
@@ -88,7 +89,10 @@ shinyUI(
                         h4("Step 5: Set the labels for figures"),
                         uiOutput("labels")
                     ),
+                    br(),
 
+                    # button for updating the Step 5 part
+                    tags$p("Please click the button before proceeding to the diagnostics and results tabs."), 
                     # submit button after all is done
                     submitButton("Groups and labels ready!"),
                     br(),
@@ -102,8 +106,8 @@ shinyUI(
                 # ),
 
                 # Show the output
-                column(8,
-                    h4("First 30 rows of your data"),
+                column(7,
+                    h4("First 60 rows of your data"),
                     tableOutput(outputId = "data_table")
                 ) 
             )  # END of row
@@ -164,24 +168,37 @@ shinyUI(
                 column(4,
                     wellPanel(
 
+                        h4("Standard frequentist test"),
+                        
                         numericInput("alpha", 
-                            label = h5("Significance level, alpha:"), 
+                            label = h5("Set the significance level"), 
                             value = 0.05),
                         
-                        sliderInput("conf_int", label = h5("Select confidence interval level:"), min = 0, max = 1, value = 0.95, step = 0.01),
+                        numericInput("conf_int", 
+                            label = h5("Set the confidence interval level"), 
+                            value = 0.95),
 
-                        radioButtons('alt_hyp', label = h5("Select alternative hypothesis:"),
+                        radioButtons('alt_hyp', label = h5("Set the alternative hypothesis"),
                             c("Two sided"="two.sided", "Less"="less", "Greater"="greater"),
                             "two.sided"),
+                        br(),
 
-                        checkboxInput("InAHurry", label = h5("Are you in a hurry?"), TRUE),
+                        h4("Robust test"),
 
-                        sliderInput("bootstraps", label = h5("Number of bootstrap replications:"), min = 0, max = 100000, value = 2000, step = 1), 
+                        sliderInput("bootstraps", label = h5("Number of bootstrap replications"), min = 0, max = 100000, value = 2000, step = 1), 
+                        br(),
+
+                        h4("Bayesian test"),
 
                         numericInput("BFrscale", 
-                            label = h5("Specify expected effect:"), 
+                            label = h5("Specify the scale for the prior distribution"), 
                             value = 0.5),                      
-                                                
+                        br(),
+                        
+                        tags$p("Certain calculations for robust and Bayesian tests could take some time, depending on the dataset size. If you have time to wait, uncheck the box."),
+                        checkboxInput("InAHurry", label = h5("I'm in a hurry"), TRUE),
+                        br(),
+
                         # submit button
                         submitButton("Update report!")
                     )
@@ -190,7 +207,6 @@ shinyUI(
                 # Show a report
                 column(8,
                     tabsetPanel(type = "tabs", 
-                        tabPanel("Instructions", includeMarkdown("instructions_freq.md")),
                         tabPanel("Classic", htmlOutput("ttestOut")), 
                         tabPanel("Robust", htmlOutput("robustOut")), 
                         tabPanel("Bayes",  htmlOutput("bayesOut"))
@@ -200,8 +216,51 @@ shinyUI(
         )
     ),  # END of tab
 
+    # 4th tab are diagnostic graphs about outliers, normality assumptions...
+    tabPanel("Results plot",
+        fluidPage(
 
-    # 4th tab, references used in the text
+            # row with explanations of the figure
+            fluidRow(
+                column(10, includeMarkdown("instructions_figure.md") ),
+                column(2)
+            ),  # END of row
+
+            br(),
+
+            # row with buttons and the figure
+            fluidRow(
+                column(4,
+                    wellPanel(
+
+                        h4("Figure setup"),
+                        br(),
+
+                        radioButtons('plotType', 
+                            label = h5("Select the type of the plot - means only, bar plot or a violin plot"),
+                            c("Means plot"="meansPlot", 
+                              "Bar plot"="barPlot", 
+                              "Violin plot"="violinPlot")
+                            ),
+
+                        checkboxInput("individualData", 
+                            label = h5("Show individual data in the bar plot?"), 
+                            FALSE),
+
+                        # submit button
+                        submitButton("Update the figure!")
+                    )
+                ),
+
+                column(8,
+                    # Results plot
+                    plotOutput(outputId = "results_plot")
+                )
+            )  # END of row
+        )
+    ),  # END of tab
+
+    # 5th tab, references used in the text
     tabPanel("References", includeMarkdown("references.md") 
             
     )  # END of tab

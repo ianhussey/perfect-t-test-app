@@ -1,0 +1,1 @@
+Before looking at the results of the Frequentist statistics and the Robust statistics, decide which of these answer the question you are interested in. Choosing between these two options depending on the outcome of the statistical test inflates the Type 1 error rate. You can always report Bayesian statistics.

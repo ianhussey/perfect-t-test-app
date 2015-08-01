@@ -46,7 +46,16 @@ shinyServer(function(input, output) {
         
     })
 
-    validate_variables_input <- reactive({
+    validate_indVariables_input <- reactive({
+       
+        # we validate if the variables are set, if not the text is displayed instead of ugly red error messages
+        validate(
+            need(!is.null(input$factorlabel), "Please set the variables!")
+        )
+        
+    })
+
+    validate_depVariables_input <- reactive({
        
         # we validate if the variables are set, if not the text is displayed instead of ugly red error messages
         validate(
@@ -54,6 +63,19 @@ shinyServer(function(input, output) {
         )
         
     })
+
+    validate_test_input <- reactive({
+       
+        # we validate if the alpha, confidence interval etc are correctly set, if not the text is displayed instead of ugly red error messages
+        validate(
+            need(input$alpha > 0 && input$alpha < 1, "Significance level should be between 0 and 1!"),
+            need(input$conf_int > 0 && input$conf_int < 1, "Confidence interval should be between 0 and 1!"),
+            need(input$BFrscale > 0, "Bayes factor prior scale should be positive")
+        )
+        
+    })
+
+
 
     # ----
     # Loading and preprocessing the data
@@ -152,16 +174,6 @@ shinyServer(function(input, output) {
     # Data tab
     # ----
     
-    # output$data_example <- renderTable({
-        
-    #     # fetch the example data file and return it to the user
-    #     if (input$test_type == "independent") {
-    #         return(head(example_independent, 30))
-    #     } else if (input$test_type == "dependent") {
-    #         return(head(example_dependent, 30))
-    #     }
-    # })
-
     output$data_table <- renderTable({
         
         # fetch the original data file and return it to the user
@@ -178,34 +190,34 @@ shinyServer(function(input, output) {
         if (input$test_type == "independent") {
             list(
                 selectInput("factorlabel", 
-                            label = "Select the variable that determines to which group the observation belongs", 
+                            label = h5("Select the variable that determines to which group the observation belongs"), 
                             choices = variables,
                             selected = variables[1]),
 
                 selectInput("measurelabel", 
-                            label = "Select the variable with the dependent measure", 
+                            label = h5("Select the variable with the dependent measure"), 
                             choices = variables,
                             selected = variables[2])
             )
         } else if (input$test_type == "dependent") {
             list(
                 selectInput("subject", 
-                    "Select the variable that determines the subject identifier", 
+                    h5("Select the variable that determines the subject identifier"), 
                     choices = variables, 
                     selected = variables[1]),
 
                 selectInput("xlabel", 
-                    "Select the variable that determines the first group", 
+                    h5("Select the variable that determines the first group"), 
                     choices = variables, 
                     selected = variables[2]),
                 
                 selectInput("ylabel", 
-                    "Select the variable that determines the second group",  
+                    h5("Select the variable that determines the second group"),  
                     choices = variables, 
                     selected = variables[3]),
                 
                 selectInput("subgrouplabel", 
-                    "Optionally, you can specify a variable that determines  subgroups of the data. To analyze all data, leave empty", 
+                    h5("Optionally, you can specify a variable that determines  subgroups of the data. To analyze all data, leave empty"), 
                     choices = c(" ", variables), 
                     selected = " ")
             )
@@ -216,32 +228,35 @@ shinyServer(function(input, output) {
 
     output$groups <- renderUI({
 
-        # validating that variables are set
-        validate_variables_input()
-
         # reading in the data 
         data_user <- get_data()
         
         # return
         if (input$test_type == "independent") {
 
+            # validating that variables are set
+            validate_indVariables_input()
+
             # getting the groupings
             group_list <- unique(data_user[ ,input$factorlabel])
 
             list(
                 selectInput("xlabel", 
-                    "Select the label that will determine the first group", 
+                    h5("Select the label that determines the first group"), 
                     choices = group_list, 
                     selected = group_list[1]),
                 
                 selectInput("ylabel", 
-                    "Select the label that will determine the second group",  
+                    h5("Select the label that determines the second group"),  
                     choices = group_list, 
                     selected = group_list[2])
                 )
 
         } else if (input$test_type == "dependent") {  
             
+            # validating that variables are set
+            validate_depVariables_input()
+
             # check the input for the subgroup variable
             if (input$subgrouplabel == " ") {
                 group_list <- " "
@@ -251,15 +266,15 @@ shinyServer(function(input, output) {
             
             list(
                 textInput("factorlabel", 
-                    "Define the name of the factor that describes the difference between group 1 and group 2", 
+                    h5("Define the name of the factor that describes the difference between group 1 and group 2"), 
                     "Groups"),
                 
                 textInput("measurelabel", 
-                    "Define the name of the measure that describes the values of group 1 and group 2", 
+                    h5("Define the name of the measure that describes the values of group 1 and group 2"), 
                     "Measure"),
 
                 selectInput("subgrouptokeep", 
-                    "Optionally, if you have specified the subgroup variable in the previous step, you can specify the identifier of the group you want to analyze", 
+                    h5("Optionally, if you have specified the subgroup variable in the previous step, you can specify the identifier of the group you want to analyze"), 
                     choices = group_list, 
                     selected = group_list[1])
                 )
@@ -273,10 +288,10 @@ shinyServer(function(input, output) {
         if (input$test_type == "independent") {
             list(
                 textInput("xlabelstring", 
-                    "Set the label for the group variable that will be displayed on x axis", 
+                    h5("Set the label for the group variable that will be displayed on x axis"), 
                     value = "x axis label"),
                 textInput("ylabelstring", 
-                    "Set the label for the measure variable that will be displayed on y axis",
+                    h5("Set the label for the measure variable that will be displayed on y axis"),
                     value = "y axis label")
                 )
             
@@ -284,10 +299,10 @@ shinyServer(function(input, output) {
             list(
                 
                 textInput("xlabelstring", 
-                    "Set the label for the group variable that will be displayed on x axis", 
+                    h5("Set the label for the group variable that will be displayed on x axis"), 
                     value = "x axis label"),
                 textInput("ylabelstring", 
-                    "Set the label for the measure variable that will be displayed on y axis",
+                    h5("Set the label for the measure variable that will be displayed on y axis"),
                     value = "y axis label")
                 )
         }
@@ -812,6 +827,8 @@ shinyServer(function(input, output) {
     
     output$ttestOut <- renderText({
         
+        validate_test_input()
+
         # creating a report depending on the type of test
         if (input$test_type == "independent") {
 
@@ -959,7 +976,9 @@ shinyServer(function(input, output) {
     # ----
     
     output$bayesOut <- renderText({
-    
+        
+        validate_test_input()
+
         # creating a report, depending on type of the test
         if (input$test_type == "independent") {
 
@@ -1137,6 +1156,8 @@ shinyServer(function(input, output) {
     
     output$robustOut <- renderText({
        
+        validate_test_input()
+
         # creating a report
         if (input$test_type == "independent") {
 
@@ -1261,5 +1282,252 @@ shinyServer(function(input, output) {
         return(html_out)
     })
 
+
+    # ----
+    # Results figure tab
+    # ----
+    
+
+
+    output$results_plot <- renderPlot({
+        
+        if (input$test_type == "independent") {
+            
+            # loading the data
+            data_user <- get_proc_data()        
+            data_proc <- data_user$data_proc
+            x <- data_user$x
+            y <- data_user$y
+            factorlabel <- input$factorlabel
+            measurelabel <- input$measurelabel
+            xlabel <- input$xlabel
+            ylabel <- input$ylabel
+            xlabelstring <- input$xlabelstring
+            ylabelstring <- input$ylabelstring
+            ConfInt <- input$conf_int
+            
+            # prepare the data for the plot
+            bsci <- function(data_proc, 
+                             group.var = match(factorlabel,names(data_proc)), 
+                             dv.var = match(measurelabel,names(data_proc)), 
+                             difference = FALSE, 
+                             pooled.error = FALSE, 
+                             conf.level = ConfInt) {
+
+                data <- subset(data_proc, select=c(group.var, dv.var))
+                fact <- factor(data[[1]], levels = c(xlabel,ylabel))
+                dv <- data[[2]]
+                J <- nlevels(fact)
+                N <- length(dv)
+                ci.mat <- matrix(,J,3, dimnames=list(levels(fact), c('lower', 'mean', 'upper')))
+                ci.mat[,2] <- tapply(dv, fact, mean)
+                n.per.group <- tapply(dv, fact, length)
+                if(difference==TRUE) diff.factor= 2^0.5/2 else diff.factor=1
+                if(pooled.error==TRUE) {
+                    for(i in 1:J) {
+                        moe <- summary(lm(dv ~ 0 + fact))$sigma/(n.per.group[[i]])^0.5 * qt(1-(1-conf.level)/2,N-J) * diff.factor
+                        ci.mat[i,1] <- ci.mat[i,2] - moe
+                        ci.mat[i,3] <- ci.mat[i,2] + moe
+                        }
+                    }
+                if(pooled.error==FALSE) {
+                     for(i in 1:J) {
+                        group.dat <- subset(data, data[1]==levels(fact)[i])[[2]]
+                        moe <- sd(group.dat)/sqrt(n.per.group[[i]]) * qt(1-(1-conf.level)/2,n.per.group[[i]]-1) * diff.factor
+                        ci.mat[i,1] <- ci.mat[i,2] - moe
+                        ci.mat[i,3] <- ci.mat[i,2] + moe
+                    }
+                }
+                
+                return(ci.mat)
+            }
+
+            # change matrix output from functions to dataframe, add CI from between, add labels and means 
+            ci.sum <- 
+                as.data.frame(
+                    bsci(data_proc, 
+                         group.var = match(factorlabel, names(data_proc)), 
+                         dv.var = match(measurelabel, names(data_proc)), 
+                         difference = TRUE)
+                    )
+            ci.sum[[factorlabel]] <- c(xlabel, ylabel)
+            ci.sum[[measurelabel]] <- c(mean(x), mean(y))
+
+
+            ### producing a figure, depending on some user inputs
+            figure <- 
+                ggplot(ci.sum, 
+                       aes_string(x=factorlabel, y=measurelabel, group=1)) 
+
+            if (input$plotType == "meansPlot") {
+                figure <- figure + 
+                    geom_point(size=4) +
+                    geom_errorbar(width=.2, size=0.5, 
+                                  aes(ymin=lower, ymax=upper)) +
+                    ggtitle(paste0("Means and ", 100*ConfInt, "% CI"))
+
+            } else if (input$plotType == "barPlot") {
+                figure <- figure + 
+                    geom_bar(position=position_dodge(.9), 
+                             colour="black", 
+                             stat="identity", 
+                             fill="white") +
+                    geom_errorbar(width=.1, size=0.5, aes(ymin=lower, ymax=upper)) +
+                    ggtitle(paste0("Bar chart displaying means and ", 100*ConfInt, "% CI"))    
+                if (input$individualData) {
+                    figure <- figure + 
+                        geom_point(data=data_proc, alpha=0.2) +
+                        ggtitle(paste0("Bar chart displaying means, individual datapoints, and ", 100*ConfInt, "% CI"))
+                }                 
+            
+            } else if (input$plotType == "violinPlot") {
+                figure <- figure + 
+                    geom_errorbar(width=.1, size=1, 
+                                  aes(ymin=lower, ymax=upper)) +
+                    geom_point(size=2) +
+                    geom_violin(data = data_proc, 
+                                aes_string(group=factorlabel), 
+                                alpha=0) +
+                    ggtitle(paste0("Means and ", 100*ConfInt, "% CI, and violin plot"))
+            } 
+
+            # setting the font sizes and labels according to the input
+            figure <- figure + 
+                ylab(ylabelstring) +
+                xlab(xlabelstring) + 
+                theme_bw(base_size=16) +
+                theme(axis.title.y = element_text(vjust = 1.8),
+                      axis.title.x = element_text(vjust = -.8),
+                      plot.title = element_text(vjust = 1.8),
+                      panel.grid.major.x = element_blank())
+            
+            return(figure)
+
+        } else if (input$test_type == "dependent") {
+
+            # loading the data and user inputs
+            data_user <- get_proc_data()        
+            data_proc <- data_user$data_proc
+            data_proc_long <- data_user$data_proc_long
+            diff <- data_proc[["diff"]]
+            x <- data_user$x
+            y <- data_user$y
+            factorlabel <- input$factorlabel
+            measurelabel <- input$measurelabel
+            xlabel <- input$xlabel
+            ylabel <- input$ylabel
+            xlabelstring <- input$xlabelstring
+            ylabelstring <- input$ylabelstring
+            ConfInt <- input$conf_int
+            
+
+            cm.ci <- function(data_proc, conf.level = ConfInt, difference = TRUE) {
+                
+                # cousineau-morey within-subject CIs
+                k = ncol(data_proc)
+                if (difference == TRUE) {
+                    diff.factor = 2^0.5/2
+                } else { 
+                    diff.factor = 1
+                }
+                n <- nrow(data_proc)
+                df.stack <- stack(data_proc)
+                index <- rep(1:n, k)
+                p.means <- tapply(df.stack$values, index, mean)
+                norm.df <- data_proc - p.means + (sum(data_proc)/(n * k))
+                t.mat <- matrix(, k, 1)
+                mean.mat <- matrix(, k, 1)
+                for (i in 1:k) t.mat[i, ] <- t.test(norm.df[i])$statistic[1]
+                for (i in 1:k) mean.mat[i, ] <- colMeans(norm.df[i])
+                c.factor <- (k/(k - 1))^0.5
+                moe.mat <- mean.mat/t.mat * qt(1 - (1 - conf.level)/2, n - 1) * c.factor * diff.factor
+                ci.mat <- matrix(, k, 2)
+                dimnames(ci.mat) <- list(names(data_proc), c("lower", "upper"))
+                for (i in 1:k) {
+                    ci.mat[i, 1] <- mean.mat[i] - moe.mat[i]
+                    ci.mat[i, 2] <- mean.mat[i] + moe.mat[i]
+                }
+
+                return(ci.mat)
+            }
+
+            bs.ci <- function(data_proc, conf.level = ConfInt, difference = FALSE) {
+                # between-subject CIs
+                k = ncol(data_proc)
+                n <- nrow(data_proc)
+                df.stack <- stack(data_proc)
+                group.means <- colMeans(data_proc, na.rm = TRUE)
+                if (difference == TRUE) {
+                    ci.mat <- (confint(lm(values ~ 0 + ind, df.stack)) - group.means) * 2^0.5/2 + group.means
+                } else {
+                    ci.mat <- confint(lm(values ~ 0 + ind, df.stack))
+                }
+                dimnames(ci.mat) <- list(names(data_proc), c("lower", "upper"))
+                
+                return(ci.mat)
+            }
+
+            #change matrix output from functions to dataframe, add CI from between, add labels and means 
+            ci.sum <- as.data.frame(cm.ci(data_proc[2:3]))
+            ci.sum[[factorlabel]] <- c(xlabel,ylabel)
+            ci.sum[[measurelabel]] <- c(mean(x),mean(y))
+            ci.sum[["lower.between"]] <- as.data.frame(bs.ci(data_proc[2:3]))$lower
+            ci.sum[["upper.between"]] <- as.data.frame(bs.ci(data_proc[2:3]))$upper
+
+
+            ### producing a figure, depending on some user inputs
+            figure <- 
+                ggplot(ci.sum, 
+                       aes_string(x=factorlabel, y=measurelabel, group=1)) 
+            
+
+            if (input$plotType == "meansPlot") {
+                figure <- figure + 
+                    geom_point(size=4) +
+                    geom_errorbar(width=.5, size=0.5, aes(ymin=lower, ymax=upper)) +
+                    geom_errorbar(width=.3, size=0.5, aes(ymin=lower.between, ymax=upper.between)) +
+                    ggtitle(paste0("Means and ", 100*ConfInt, "% CI (between & within)"))
+
+            } else if (input$plotType == "barPlot") {
+                figure <- figure + 
+                    geom_bar(position=position_dodge(.9), 
+                             colour="black", 
+                             stat="identity", 
+                             fill="white") +
+                    geom_errorbar(width=.5, size=0.5, aes(ymin=lower, ymax=upper)) +
+                    geom_errorbar(width=.3, size=0.5, aes(ymin=lower.between, ymax=upper.between)) +
+                    ggtitle(paste0("Means and ", 100*ConfInt, "% CI (between & within)"))
+                if (input$individualData) {
+                    figure <- figure + 
+                        geom_point(data=data_proc_long, alpha=0.25) +
+                        ggtitle(paste0("Means, datapoints, and ", 100*ConfInt, "% CI (between & within)"))
+                }                 
+            
+            } else if (input$plotType == "violinPlot") {
+                figure <- figure + 
+                    geom_errorbar(width=.25, size=0.5, aes(ymin=lower, ymax=upper)) +
+                    geom_errorbar(width=0, size=1, aes(ymin=lower.between, ymax=upper.between)) +
+                    geom_point(size=2) +
+                    geom_violin(data = data_proc_long, 
+                                aes_string(group=factorlabel), 
+                                alpha=0) +
+                    ggtitle(paste0("Means, violin plot, and two-tiered ", 100*ConfInt, "% within (crossbars) and\nbetween (endpoints of lines) confidence intervals following\nMorey (2008) and Baguley (2012)"))
+            }   
+
+
+
+            # setting the font sizes and labels according to the input
+            figure <- figure + 
+                ylab(ylabelstring) +
+                xlab(xlabelstring) + 
+                theme_bw(base_size=16) +
+                theme(axis.title.y = element_text(vjust = 1.8),
+                      axis.title.x = element_text(vjust = -.8),
+                      plot.title = element_text(vjust = 1.8),
+                      panel.grid.major.x = element_blank())
+            
+            return(figure)
+        } 
+    })
     
 })
