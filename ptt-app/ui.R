@@ -1,7 +1,10 @@
+# dependencies
 library(shiny)
 library(markdown)
 
+# ui logic 
 shinyUI(
+
     navbarPage("Perfect t-test",
 
     # first tab that opens is About tab
@@ -264,6 +267,5 @@ shinyUI(
     tabPanel("References", includeMarkdown("references.md") 
             
     )  # END of tab
-
     
 ))  # END of user interface function

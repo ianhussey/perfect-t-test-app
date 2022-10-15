@@ -1,5 +1,4 @@
-
-
+# dependencies
 library(shiny)
 library(ggplot2)
 library(gtable)
@@ -11,27 +10,26 @@ library(PoweR)
 library(car) 
 library(MBESS) 
 library(bootES) 
-library(WRS)
+library(WRS2)
 library(BEST)
 library(BayesFactor) 
 library(HLMdiag)
 
-
+# globals
 options(scipen=6) #disable scientific notation for numbers smaller than x (i.e., 10) digits (e.g., 4.312e+22)
 
-example_independent <- read.table("data/demo_independent.txt", stringsAsFactors=FALSE, header=TRUE, sep="\t")
-example_dependent <- read.table("data/demo_dependent.txt", stringsAsFactors=FALSE, header=TRUE, sep="\t")
+# acquire data
+example_independent       <- read.table("data/demo_independent.txt", stringsAsFactors=FALSE, header=TRUE, sep="\t")
+example_dependent         <- read.table("data/demo_dependent.txt", stringsAsFactors=FALSE, header=TRUE, sep="\t")
 
-
-# Define server logic 
+# server logic 
 shinyServer(function(input, output) {
 
-    
     # ----
     # Validating inputs
     # ----
     
-    validate_data_input <- reactive({
+    validate_data_input   <- reactive({
        
         # input$data_file will be NULL initially. After the user selects
         # and uploads a file, it will be a data frame with 'name',
@@ -64,7 +62,7 @@ shinyServer(function(input, output) {
         
     })
 
-    validate_test_input <- reactive({
+    validate_test_input   <- reactive({
        
         # we validate if the alpha, confidence interval etc are correctly set, if not the text is displayed instead of ugly red error messages
         validate(
@@ -75,14 +73,12 @@ shinyServer(function(input, output) {
         
     })
 
-
-
     # ----
     # Loading and preprocessing the data
     # ----
     
     # original data file loaded by the user
-    get_data <- reactive({
+    get_data              <- reactive({
        
         # we call validated data input 
         validate_data_input()
@@ -93,7 +89,7 @@ shinyServer(function(input, output) {
     })
     
     # data file after we have done some processing, this one will be actually used in computations
-    get_proc_data <- reactive( {      
+    get_proc_data         <- reactive( {      
 
         ### ORIGINAL DATA 
         data_original <- get_data()
@@ -165,7 +161,6 @@ shinyServer(function(input, output) {
         }
     })
 
-
     # ------------------------------------------------------------------
     # OUTPUTS
     # ------------------------------------------------------------------
@@ -174,14 +169,14 @@ shinyServer(function(input, output) {
     # Data tab
     # ----
     
-    output$data_table <- renderTable({
+    output$data_table     <- renderTable({
         
         # fetch the original data file and return it to the user
         data_user <- get_data()
         return(head(data_user, 60))
     })
 
-    output$variables <- renderUI({
+    output$variables      <- renderUI({
 
         # get the variables available in the data set
         data_user <- get_data()
@@ -224,9 +219,7 @@ shinyServer(function(input, output) {
         }
     })
     
-    
-
-    output$groups <- renderUI({
+    output$groups         <- renderUI({
 
         # reading in the data 
         data_user <- get_data()
@@ -281,8 +274,7 @@ shinyServer(function(input, output) {
         }
     })
 
-
-    output$labels <- renderUI({
+    output$labels         <- renderUI({
 
         # return
         if (input$test_type == "independent") {
@@ -308,12 +300,11 @@ shinyServer(function(input, output) {
         }
     })
 
-
     # ----
     # Diagnostics tab
     # ----
 
-    output$outlier_plot <- renderPlot({
+    output$outlier_plot   <- renderPlot({
         
         if (input$test_type == "independent") {
             # loading the data
@@ -431,8 +422,7 @@ shinyServer(function(input, output) {
         } 
     })
 
-
-    output$outlier_text <- renderText({
+    output$outlier_text   <- renderText({
         
         if (input$test_type == "independent") {
             report <- "Boxplots can be used to identify outliers. Boxplots give the median (thick line), and 25% of the data above and below the median (box). End of whiskers are the maximum and minimum value when excluding outliers (whih are indicated by dots)."
@@ -443,7 +433,6 @@ shinyServer(function(input, output) {
         html_out <- renderMarkdown(text = report)
         return(html_out)
     })
-
 
     output$normality_text <- renderText({
 
@@ -544,7 +533,7 @@ shinyServer(function(input, output) {
         return(html_out)
     })
 
-    output$hist_plot <- renderPlot({
+    output$hist_plot      <- renderPlot({
         
         if (input$test_type == "independent") {
         
@@ -652,8 +641,7 @@ shinyServer(function(input, output) {
         }
     })
 
-    
-    output$qqplot_text <- renderText({
+    output$qqplot_text    <- renderText({
 
         xlabel <- input$xlabel
         ylabel <- input$ylabel
@@ -673,8 +661,7 @@ shinyServer(function(input, output) {
         return(html_out)
     })
 
-
-    output$qq_plot <- renderPlot({
+    output$qq_plot        <- renderPlot({
         
         if (input$test_type == "independent") {
 
@@ -744,8 +731,7 @@ shinyServer(function(input, output) {
         }
     })
 
-
-    output$eqvar_text <- renderText({
+    output$eqvar_text     <- renderText({
         
         if (input$test_type == "independent") {
 
@@ -819,13 +805,11 @@ shinyServer(function(input, output) {
         return(html_out)
     })
 
-    
-    
     # ----
     # Frequentist tab
     # ----
     
-    output$ttestOut <- renderText({
+    output$ttestOut       <- renderText({
         
         validate_test_input()
 
@@ -970,12 +954,11 @@ shinyServer(function(input, output) {
         return(html_out)
     })
 
-
     # ----
     # Bayesian tab
     # ----
     
-    output$bayesOut <- renderText({
+    output$bayesOut       <- renderText({
         
         validate_test_input()
 
@@ -1149,12 +1132,11 @@ shinyServer(function(input, output) {
         return(html_out)
     })
 
-
     # ----
     # Robust stats tab
     # ----
     
-    output$robustOut <- renderText({
+    output$robustOut      <- renderText({
        
         validate_test_input()
 
@@ -1282,14 +1264,11 @@ shinyServer(function(input, output) {
         return(html_out)
     })
 
-
     # ----
     # Results figure tab
     # ----
     
-
-
-    output$results_plot <- renderPlot({
+    output$results_plot   <- renderPlot({
         
         if (input$test_type == "independent") {
             

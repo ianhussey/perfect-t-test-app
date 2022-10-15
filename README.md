@@ -2,6 +2,14 @@
 
 some description of the repository...
 
+## License
+Distributed under a GPLv3+ license. 
+
+NB Stojic's code didn't include a license, so I've included this for safety. 
+NNB cannot use MIT license as the scripts call on several GPL packages.
+
+Citation...
+
 # To Do list
 
 ## Primary 
